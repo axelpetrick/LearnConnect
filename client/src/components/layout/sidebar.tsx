@@ -111,8 +111,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               return (
                 <li key={item.name}>
                   <Link href={item.href}>
-                    <a 
-                      className={`nav-item flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                    <div 
+                      className={`nav-item flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
                         isActive 
                           ? 'active text-primary bg-blue-50 font-medium' 
                           : 'text-gray-700 hover:bg-gray-100'
@@ -121,7 +121,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     >
                       <Icon className="w-5 h-5" />
                       <span>{item.name}</span>
-                    </a>
+                    </div>
                   </Link>
                 </li>
               );
@@ -132,10 +132,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <ul className="space-y-2">
               <li>
                 <Link href="/profile">
-                  <a className="nav-item flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                  <div className="nav-item flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
                     <Settings className="w-5 h-5" />
                     <span>Configurações</span>
-                  </a>
+                  </div>
                 </Link>
               </li>
               <li>

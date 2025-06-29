@@ -1,25 +1,101 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, MessageSquare, User, Calendar, Eye, MessageCircle } from 'lucide-react';
-import { ForumTopic } from '@shared/schema';
+import { ForumTopic, InsertForumTopic } from '@shared/schema';
 
 export default function Forum() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    tags: '',
+  });
 
   const { data: topics = [], isLoading } = useQuery<ForumTopic[]>({
     queryKey: ['/api/forum/topics'],
   });
+
+  const createTopicMutation = useMutation({
+    mutationFn: async (topicData: InsertForumTopic) => {
+      const response = await fetch('/api/forum/topics', {
+        method: 'POST',
+        body: JSON.stringify(topicData),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create topic');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Sucesso!',
+        description: 'Tópico criado com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/forum/topics'] });
+      setShowCreateDialog(false);
+      setFormData({
+        title: '',
+        content: '',
+        tags: '',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao criar tópico.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleCreateTopic = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.title || !formData.content) {
+      toast({
+        title: 'Erro',
+        description: 'Por favor, preencha todos os campos obrigatórios.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const topicData: InsertForumTopic = {
+      title: formData.title,
+      content: formData.content,
+      tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : null,
+      authorId: user?.id || 1,
+      courseId: null,
+      isPinned: false,
+    };
+
+    createTopicMutation.mutate(topicData);
+  };
 
   const filteredTopics = topics.filter(topic =>
     topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -73,13 +149,62 @@ export default function Forum() {
                 Participe de discussões e tire suas dúvidas com a comunidade
               </p>
             </div>
-            <Button 
-              onClick={() => setLocation('/forum/new')}
-              className="mt-4 sm:mt-0"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Tópico
-            </Button>
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogTrigger asChild>
+                <Button className="mt-4 sm:mt-0">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Tópico
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Criar Novo Tópico</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleCreateTopic} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Título *</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Digite o título do tópico"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="content">Conteúdo *</Label>
+                    <Textarea
+                      id="content"
+                      value={formData.content}
+                      onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                      placeholder="Digite o conteúdo da discussão"
+                      rows={6}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="tags">Tags</Label>
+                    <Input
+                      id="tags"
+                      value={formData.tags}
+                      onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+                      placeholder="Digite as tags separadas por vírgula"
+                    />
+                  </div>
+                  
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={createTopicMutation.isPending}>
+                      {createTopicMutation.isPending ? 'Criando...' : 'Criar Tópico'}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* Search */}

@@ -16,7 +16,7 @@ export function QuickActions() {
       description: 'Adicionar novo curso à plataforma',
       icon: Plus,
       color: 'bg-primary',
-      onClick: () => setLocation('/courses/new'),
+      onClick: () => setLocation('/courses'),
       visible: canCreate,
     },
     {
@@ -24,7 +24,7 @@ export function QuickActions() {
       description: 'Criar anotação colaborativa',
       icon: FileText,
       color: 'bg-secondary',
-      onClick: () => setLocation('/notes/new'),
+      onClick: () => setLocation('/notes'),
       visible: canCreate,
     },
     {
@@ -32,7 +32,7 @@ export function QuickActions() {
       description: 'Criar tópico no fórum',
       icon: MessageSquare,
       color: 'bg-accent',
-      onClick: () => setLocation('/forum/new'),
+      onClick: () => setLocation('/forum'),
       visible: true,
     },
   ];

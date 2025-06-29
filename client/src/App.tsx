@@ -11,6 +11,7 @@ import Register from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
 import Courses from "@/pages/courses";
 import CourseDetail from "@/pages/course-detail";
+
 import Notes from "@/pages/notes";
 import NoteDetail from "@/pages/note-detail";
 import Forum from "@/pages/forum";

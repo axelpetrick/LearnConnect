@@ -77,11 +77,11 @@ export class MemStorage implements IStorage {
     this.commentVotes = new Map();
     this.currentId = 1;
 
-    // Create default admin user
+    // Create admin user with correct password hash
     this.createUser({
       username: "admin",
-      email: "admin@educollab.com",
-      password: "$2b$10$rGy8QgxqQF1YVz8QK1YqzuKJ0wGjW8j5K4jZ8f8j5K4jZ8f8j5K4jZ", // "admin123"
+      email: "admin@educollab.com", 
+      password: "$2b$10$1U7dQFzbBgfudAyFAvGLVOA9tyDc40bpv/L.LpT6sBMx9zWUCI5Qa",
       firstName: "Admin",
       lastName: "User",
       role: "admin"
@@ -91,6 +91,8 @@ export class MemStorage implements IStorage {
   private getNextId(): number {
     return this.currentId++;
   }
+
+
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
@@ -108,8 +110,14 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.getNextId();
     const user: User = {
-      ...insertUser,
       id,
+      username: insertUser.username,
+      email: insertUser.email,
+      password: insertUser.password,
+      firstName: insertUser.firstName,
+      lastName: insertUser.lastName,
+      role: insertUser.role || 'student',
+      avatar: insertUser.avatar || null,
       createdAt: new Date(),
     };
     this.users.set(id, user);
@@ -141,8 +149,14 @@ export class MemStorage implements IStorage {
   async createCourse(insertCourse: InsertCourse): Promise<Course> {
     const id = this.getNextId();
     const course: Course = {
-      ...insertCourse,
       id,
+      title: insertCourse.title,
+      description: insertCourse.description,
+      content: insertCourse.content || null,
+      category: insertCourse.category,
+      tags: insertCourse.tags || null,
+      authorId: insertCourse.authorId,
+      isPublished: insertCourse.isPublished || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -215,8 +229,13 @@ export class MemStorage implements IStorage {
   async createNote(insertNote: InsertNote): Promise<Note> {
     const id = this.getNextId();
     const note: Note = {
-      ...insertNote,
       id,
+      title: insertNote.title,
+      content: insertNote.content,
+      tags: insertNote.tags || null,
+      authorId: insertNote.authorId,
+      courseId: insertNote.courseId || null,
+      isPublic: insertNote.isPublic || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -255,8 +274,13 @@ export class MemStorage implements IStorage {
   async createForumTopic(insertTopic: InsertForumTopic): Promise<ForumTopic> {
     const id = this.getNextId();
     const topic: ForumTopic = {
-      ...insertTopic,
       id,
+      title: insertTopic.title,
+      content: insertTopic.content,
+      tags: insertTopic.tags || null,
+      authorId: insertTopic.authorId,
+      courseId: insertTopic.courseId || null,
+      isPinned: insertTopic.isPinned || null,
       views: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -291,8 +315,11 @@ export class MemStorage implements IStorage {
   async createForumComment(insertComment: InsertForumComment): Promise<ForumComment> {
     const id = this.getNextId();
     const comment: ForumComment = {
-      ...insertComment,
       id,
+      content: insertComment.content,
+      authorId: insertComment.authorId,
+      topicId: insertComment.topicId,
+      parentId: insertComment.parentId || null,
       votes: 0,
       createdAt: new Date(),
       updatedAt: new Date(),

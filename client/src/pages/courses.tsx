@@ -1,25 +1,107 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
-import { Plus, Search, Book, User, Calendar } from 'lucide-react';
-import { Course } from '@shared/schema';
+import { useToast } from '@/hooks/use-toast';
+import { Plus, Search, Book, User, Calendar, Eye } from 'lucide-react';
+import { Course, InsertCourse } from '@shared/schema';
 
 export default function Courses() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    content: '',
+    category: '',
+    tags: '',
+  });
 
   const { data: courses = [], isLoading } = useQuery<Course[]>({
     queryKey: ['/api/courses'],
   });
+
+  const createCourseMutation = useMutation({
+    mutationFn: async (courseData: InsertCourse) => {
+      const response = await fetch('/api/courses', {
+        method: 'POST',
+        body: JSON.stringify(courseData),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create course');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Sucesso!',
+        description: 'Curso criado com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
+      setShowCreateDialog(false);
+      setFormData({
+        title: '',
+        description: '',
+        content: '',
+        category: '',
+        tags: '',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao criar curso.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleCreateCourse = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.title || !formData.description || !formData.category) {
+      toast({
+        title: 'Erro',
+        description: 'Por favor, preencha todos os campos obrigatórios.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const courseData: InsertCourse = {
+      title: formData.title,
+      description: formData.description,
+      content: formData.content || null,
+      category: formData.category,
+      tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : null,
+      authorId: user?.id || 1,
+      isPublished: true,
+    };
+
+    createCourseMutation.mutate(courseData);
+  };
 
   const canCreateCourse = user?.role === 'tutor' || user?.role === 'admin';
 
@@ -72,13 +154,93 @@ export default function Courses() {
               </p>
             </div>
             {canCreateCourse && (
-              <Button 
-                onClick={() => setLocation('/courses/new')}
-                className="mt-4 sm:mt-0"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Criar Curso
-              </Button>
+              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                <DialogTrigger asChild>
+                  <Button className="mt-4 sm:mt-0">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Criar Curso
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Criar Novo Curso</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleCreateCourse} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Título *</Label>
+                      <Input
+                        id="title"
+                        value={formData.title}
+                        onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="Digite o título do curso"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Descrição *</Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Digite uma descrição para o curso"
+                        rows={3}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="content">Conteúdo</Label>
+                      <Textarea
+                        id="content"
+                        value={formData.content}
+                        onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                        placeholder="Digite o conteúdo detalhado do curso"
+                        rows={4}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Categoria *</Label>
+                      <Select onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="programacao">Programação</SelectItem>
+                          <SelectItem value="design">Design</SelectItem>
+                          <SelectItem value="marketing">Marketing</SelectItem>
+                          <SelectItem value="negocios">Negócios</SelectItem>
+                          <SelectItem value="idiomas">Idiomas</SelectItem>
+                          <SelectItem value="ciencias">Ciências</SelectItem>
+                          <SelectItem value="matematica">Matemática</SelectItem>
+                          <SelectItem value="artes">Artes</SelectItem>
+                          <SelectItem value="outros">Outros</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="tags">Tags</Label>
+                      <Input
+                        id="tags"
+                        value={formData.tags}
+                        onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+                        placeholder="Digite as tags separadas por vírgula"
+                      />
+                    </div>
+                    
+                    <div className="flex justify-end space-x-2 pt-4">
+                      <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
+                        Cancelar
+                      </Button>
+                      <Button type="submit" disabled={createCourseMutation.isPending}>
+                        {createCourseMutation.isPending ? 'Criando...' : 'Criar Curso'}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
             )}
           </div>
 
@@ -123,8 +285,7 @@ export default function Courses() {
               {filteredCourses.map((course) => (
                 <Card 
                   key={course.id} 
-                  className="hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => setLocation(`/courses/${course.id}`)}
+                  className="hover:shadow-lg transition-shadow"
                 >
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -164,6 +325,16 @@ export default function Courses() {
                         )}
                       </div>
                     )}
+                    <div className="mt-4 flex justify-end">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setLocation(`/courses/${course.id}`)}
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Ver Mais
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
