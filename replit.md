@@ -124,7 +124,14 @@ EduCollab is a modern educational collaboration platform built with React, TypeS
 
 ```
 Changelog:
-- June 29, 2025. Initial setup
+- June 29, 2025: Initial setup and platform implementation
+- June 29, 2025: Fixed authentication issues and core functionality
+  * Added logout button to header with user info display
+  * Fixed course creation modal for tutors/admins
+  * Fixed forum topic creation with proper authentication
+  * Fixed notes creation modal for tutors/admins
+  * Added admin role option in user registration for testing
+  * All modals now use proper apiRequest with authentication
 ```
 
 ## User Preferences

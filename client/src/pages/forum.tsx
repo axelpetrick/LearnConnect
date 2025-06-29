@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 import { Plus, Search, MessageSquare, User, Calendar, Eye, MessageCircle } from 'lucide-react';
 import { ForumTopic, InsertForumTopic } from '@shared/schema';
 
@@ -36,19 +37,7 @@ export default function Forum() {
 
   const createTopicMutation = useMutation({
     mutationFn: async (topicData: InsertForumTopic) => {
-      const response = await fetch('/api/forum/topics', {
-        method: 'POST',
-        body: JSON.stringify(topicData),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create topic');
-      }
-      
+      const response = await apiRequest('POST', '/api/forum/topics', topicData);
       return response.json();
     },
     onSuccess: () => {

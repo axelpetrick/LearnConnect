@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Bell, Menu, Search } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { Bell, Menu, Search, LogOut, User } from 'lucide-react';
 
 interface HeaderProps {
   title: string;
@@ -10,6 +11,7 @@ interface HeaderProps {
 
 export function Header({ title, onMenuClick }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const { user, logout } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +55,29 @@ export function Header({ title, onMenuClick }: HeaderProps) {
               <Bell className="w-6 h-6" />
               <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white"></span>
             </Button>
+
+            {/* User Info */}
+            {user && (
+              <div className="flex items-center space-x-2">
+                <div className="hidden md:flex items-center space-x-2">
+                  <User className="w-5 h-5 text-gray-600" />
+                  <div className="text-sm">
+                    <p className="font-medium text-gray-900">{user.firstName} {user.lastName}</p>
+                    <p className="text-gray-500 capitalize">{user.role}</p>
+                  </div>
+                </div>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={logout}
+                  className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  title="Sair"
+                >
+                  <LogOut className="w-5 h-5" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

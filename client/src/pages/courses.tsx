@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 import { Plus, Search, Book, User, Calendar, Eye } from 'lucide-react';
 import { Course, InsertCourse } from '@shared/schema';
 
@@ -39,19 +40,7 @@ export default function Courses() {
 
   const createCourseMutation = useMutation({
     mutationFn: async (courseData: InsertCourse) => {
-      const response = await fetch('/api/courses', {
-        method: 'POST',
-        body: JSON.stringify(courseData),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create course');
-      }
-      
+      const response = await apiRequest('POST', '/api/courses', courseData);
       return response.json();
     },
     onSuccess: () => {

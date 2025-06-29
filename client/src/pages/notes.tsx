@@ -1,25 +1,93 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 import { Plus, Search, FileText, User, Calendar, Eye } from 'lucide-react';
-import { Note } from '@shared/schema';
+import { Note, InsertNote } from '@shared/schema';
 
 export default function Notes() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    tags: '',
+    isPublic: true,
+  });
 
   const { data: notes = [], isLoading } = useQuery<Note[]>({
     queryKey: ['/api/notes'],
   });
+
+  const createNoteMutation = useMutation({
+    mutationFn: async (noteData: InsertNote) => {
+      const response = await apiRequest('POST', '/api/notes', noteData);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Sucesso!',
+        description: 'Anotação criada com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/notes'] });
+      setShowCreateDialog(false);
+      setFormData({
+        title: '',
+        content: '',
+        tags: '',
+        isPublic: true,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao criar anotação.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleCreateNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.title || !formData.content) {
+      toast({
+        title: 'Erro',
+        description: 'Por favor, preencha todos os campos obrigatórios.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const noteData: InsertNote = {
+      title: formData.title,
+      content: formData.content,
+      tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : null,
+      authorId: user?.id || 1,
+      courseId: null,
+      isPublic: formData.isPublic,
+    };
+
+    createNoteMutation.mutate(noteData);
+  };
 
   const canCreateNote = user?.role === 'tutor' || user?.role === 'admin';
 
@@ -75,13 +143,71 @@ export default function Notes() {
               </p>
             </div>
             {canCreateNote && (
-              <Button 
-                onClick={() => setLocation('/notes/new')}
-                className="mt-4 sm:mt-0"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Nova Anotação
-              </Button>
+              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                <DialogTrigger asChild>
+                  <Button className="mt-4 sm:mt-0">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nova Anotação
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Criar Nova Anotação</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleCreateNote} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Título *</Label>
+                      <Input
+                        id="title"
+                        value={formData.title}
+                        onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="Digite o título da anotação"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="content">Conteúdo *</Label>
+                      <Textarea
+                        id="content"
+                        value={formData.content}
+                        onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                        placeholder="Digite o conteúdo da anotação"
+                        rows={6}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="tags">Tags</Label>
+                      <Input
+                        id="tags"
+                        value={formData.tags}
+                        onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+                        placeholder="Digite as tags separadas por vírgula"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="isPublic"
+                        checked={formData.isPublic}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPublic: checked }))}
+                      />
+                      <Label htmlFor="isPublic">Anotação pública</Label>
+                    </div>
+                    
+                    <div className="flex justify-end space-x-2 pt-4">
+                      <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
+                        Cancelar
+                      </Button>
+                      <Button type="submit" disabled={createNoteMutation.isPending}>
+                        {createNoteMutation.isPending ? 'Criando...' : 'Criar Anotação'}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
             )}
           </div>
 
