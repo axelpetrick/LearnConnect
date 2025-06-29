@@ -224,12 +224,7 @@ export default function Forum() {
                     : 'Seja o primeiro a iniciar uma discussão na comunidade.'
                   }
                 </p>
-                {!searchQuery && (
-                  <Button onClick={() => setLocation('/forum/new')}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Iniciar Discussão
-                  </Button>
-                )}
+
               </CardContent>
             </Card>
           ) : (

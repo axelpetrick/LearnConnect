@@ -241,12 +241,7 @@ export default function Notes() {
                       : 'Aguarde os tutores compartilharem anotações.'
                   }
                 </p>
-                {canCreateNote && !searchQuery && (
-                  <Button onClick={() => setLocation('/notes/new')}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Criar Primeira Anotação
-                  </Button>
-                )}
+
               </CardContent>
             </Card>
           ) : (

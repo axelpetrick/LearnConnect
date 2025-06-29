@@ -261,12 +261,7 @@ export default function Courses() {
                     : 'Seja o primeiro a criar um curso na plataforma.'
                   }
                 </p>
-                {canCreateCourse && !searchQuery && (
-                  <Button onClick={() => setLocation('/courses/new')}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Criar Primeiro Curso
-                  </Button>
-                )}
+
               </CardContent>
             </Card>
           ) : (
