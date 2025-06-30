@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Book, User, Calendar, Users, Play, CheckCircle, UserPlus, GraduationCap, FileText, Plus, Trash2, Edit, MoreVertical } from 'lucide-react';
+import { Book, User, Calendar, Users, Play, CheckCircle, CheckCircle2, UserPlus, GraduationCap, FileText, Plus, Trash2, Edit, MoreVertical } from 'lucide-react';
 import { Course, CourseEnrollment, Note } from '@shared/schema';
 
 export default function CourseDetail() {
@@ -559,7 +559,7 @@ export default function CourseDetail() {
                       ) : (
                         <div className="space-y-4">
                           {courseNotes.map((note) => {
-                            const isCompleted = completedNotes.some(cn => cn.noteId === note.id);
+                            const isCompleted = Array.isArray(completedNotes) && completedNotes.some(cn => cn.noteId === note.id);
                             return (
                               <div key={note.id} className="p-4 border rounded-lg hover:bg-gray-50">
                                 <div className="flex items-start justify-between">
@@ -587,7 +587,7 @@ export default function CourseDetail() {
                                             </>
                                           ) : (
                                             <>
-                                              <Circle className="w-4 h-4" />
+                                              <CheckCircle2 className="w-4 h-4" />
                                               Marcar como concluído
                                             </>
                                           )}
