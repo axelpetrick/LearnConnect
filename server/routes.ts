@@ -289,7 +289,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Course not found' });
       }
       
-      if (course.authorId !== req.user.id && req.user.role !== 'admin') {
+      // Permitir edição apenas para o autor do curso, tutores ou admins
+      if (course.authorId !== req.user.id && !['tutor', 'admin'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Not authorized to edit this course' });
       }
 
