@@ -647,7 +647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Os dados do autor já vêm do storage via JOIN
       // Agora só precisamos ajustar a exibição para admins em comentários anônimos
-      const isAdmin = req.user && (req.user.role === 'admin' || req.user.role === 'tutor');
+      const isAdmin = req.user && req.user.role === 'admin';
       console.log('Current user:', req.user?.username, 'role:', req.user?.role, 'isAdmin:', isAdmin);
       
       const processedComments = comments.map(comment => {
