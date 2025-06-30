@@ -140,6 +140,11 @@ export default function CourseDetail() {
     ? userEnrollments.find(e => e.courseId === parseInt(id || '0'))
     : null;
 
+  // Debug: log para verificar os dados
+  console.log('DEBUG - userEnrollments:', userEnrollments);
+  console.log('DEBUG - myEnrollment:', myEnrollment);
+  console.log('DEBUG - courseId:', id);
+
   // Usar dados da matrícula específica ou buscar nos dados gerais (para admins/tutors)
   const currentEnrollment = user?.role === 'student' 
     ? myEnrollment 
