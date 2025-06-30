@@ -650,22 +650,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isAdmin = req.user && req.user.role === 'admin';
       
       const processedComments = comments.map(comment => {
-        if (comment.isAnonymous && comment.author) {
+        if (comment.author) {
           return {
             ...comment,
             author: {
               ...comment.author,
-              username: isAdmin ? `Anônimo (${comment.author.firstName || comment.author.username})` : 'Anônimo'
-            }
-          };
-        }
-        // Para comentários não anônimos, garantir que firstName seja usado
-        if (comment.author && !comment.isAnonymous) {
-          return {
-            ...comment,
-            author: {
-              ...comment.author,
-              username: comment.author.firstName || comment.author.username
+              username: comment.isAnonymous 
+                ? (isAdmin ? `Anônimo (${comment.author.firstName || comment.author.username})` : 'Anônimo')
+                : (comment.author.firstName || comment.author.username)
             }
           };
         }
