@@ -38,7 +38,7 @@ export default function Courses() {
     queryKey: ['/api/courses'],
   });
 
-  const { data: userEnrollments = [] } = useQuery({
+  const { data: userEnrollments = [] } = useQuery<any[]>({
     queryKey: ['/api/users/enrollments'],
     enabled: user?.role === 'student',
   });
@@ -46,7 +46,7 @@ export default function Courses() {
   // Filtrar cursos para estudantes - mostrar apenas matriculados
   const displayCourses = user?.role === 'student' 
     ? courses.filter(course => 
-        userEnrollments.some((enrollment: any) => enrollment.courseId === course.id)
+        Array.isArray(userEnrollments) && userEnrollments.some((enrollment: any) => enrollment.courseId === course.id)
       )
     : courses;
 
