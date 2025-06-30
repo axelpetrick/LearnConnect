@@ -102,9 +102,7 @@ export default function CourseDetail() {
 
   const removeStudentMutation = useMutation({
     mutationFn: async (studentId: number) => {
-      return apiRequest(`/api/courses/${id}/students/${studentId}`, {
-        method: 'DELETE'
-      });
+      return apiRequest('DELETE', `/api/courses/${id}/students/${studentId}`);
     },
     onSuccess: () => {
       toast({
