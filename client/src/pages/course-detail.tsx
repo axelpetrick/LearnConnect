@@ -86,7 +86,6 @@ export default function CourseDetail() {
   // Buscar anotações concluídas pelo estudante
   const { data: completedNotes = [] } = useQuery<any[]>({
     queryKey: ['/api/notes/completed', id],
-    queryFn: () => apiRequest('GET', `/api/notes/completed/${id}`),
     enabled: !!(id && user?.role === 'student'),
   });
 
@@ -568,7 +567,7 @@ export default function CourseDetail() {
                                       <h4 className="font-medium text-lg">{note.title}</h4>
                                       {user?.role === 'student' && (
                                         <Button
-                                          variant="ghost"
+                                          variant={isCompleted ? "default" : "outline"}
                                           size="sm"
                                           onClick={() => {
                                             if (isCompleted) {
@@ -578,7 +577,11 @@ export default function CourseDetail() {
                                             }
                                           }}
                                           disabled={completeNoteMutation.isPending || uncompleteNoteMutation.isPending}
-                                          className={`flex items-center gap-1 ${isCompleted ? 'text-green-600 hover:text-green-700' : 'text-gray-400 hover:text-gray-600'}`}
+                                          className={`flex items-center gap-2 transition-all duration-200 ${
+                                            isCompleted 
+                                              ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' 
+                                              : 'border-gray-300 text-gray-600 hover:border-green-500 hover:text-green-600'
+                                          }`}
                                         >
                                           {isCompleted ? (
                                             <>
