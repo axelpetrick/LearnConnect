@@ -456,18 +456,44 @@ export default function CourseDetail() {
                   <CardHeader>
                     <CardTitle>Sobre o Curso</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    {course.content ? (
-                      <div className="prose prose-gray max-w-none">
-                        {course.content.split('\n').map((paragraph, index) => (
-                          <p key={index} className="mb-4">{paragraph}</p>
-                        ))}
+                  <CardContent className="space-y-4">
+                    {/* Descrição do curso */}
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Descrição</h4>
+                      <p className="text-gray-700">{course.description}</p>
+                    </div>
+                    
+                    {/* Conteúdo detalhado */}
+                    {course.content && (
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Conteúdo Detalhado</h4>
+                        <div className="prose prose-gray max-w-none">
+                          {course.content.split('\n').map((paragraph, index) => (
+                            <p key={index} className="mb-3 text-gray-700">{paragraph}</p>
+                          ))}
+                        </div>
                       </div>
-                    ) : (
-                      <p className="text-gray-500 italic">
-                        Conteúdo detalhado do curso não disponível.
-                      </p>
                     )}
+                    
+                    {/* Professor responsável */}
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Professor Responsável</h4>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {courseAuthor ? 
+                              (courseAuthor.firstName ? `${courseAuthor.firstName} ${courseAuthor.lastName}` : courseAuthor.username) 
+                              : (authorLoading ? 'Carregando...' : 'Professor não definido')}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {courseAuthor?.role === 'admin' ? 'Administrador' : 'Professor'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
