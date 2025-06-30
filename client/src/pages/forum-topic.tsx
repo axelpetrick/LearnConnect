@@ -28,7 +28,7 @@ export default function ForumTopicPage() {
   });
 
   const { data: comments = [], isLoading: commentsLoading } = useQuery<any[]>({
-    queryKey: ['/api/forum/topics', id, 'comments'],
+    queryKey: ['/api/forum/topics', id, 'comments', user?.role],
     queryFn: async () => {
       const response = await fetch(`/api/forum/topics/${id}/comments`);
       if (!response.ok) throw new Error('Failed to fetch comments');
