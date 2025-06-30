@@ -86,7 +86,7 @@ export default function CourseDetail() {
   // Buscar anotações concluídas pelo estudante
   const { data: completedNotes = [] } = useQuery<any[]>({
     queryKey: ['/api/notes/completed', id],
-    queryFn: () => fetch(`/api/notes/completed/${id}`).then(res => res.json()),
+    queryFn: () => apiRequest('GET', `/api/notes/completed/${id}`),
     enabled: !!(id && user?.role === 'student'),
   });
 
