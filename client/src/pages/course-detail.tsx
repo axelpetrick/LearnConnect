@@ -1110,6 +1110,7 @@ export default function CourseDetail() {
                                                   // Invalidar múltiplas queries para atualizar todas as listas
                                                   queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
                                                   queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
+                                                  queryClient.invalidateQueries({ queryKey: ['/api/users/enrollments'] });
                                                 } catch (error) {
                                                   toast({
                                                     title: 'Erro',
