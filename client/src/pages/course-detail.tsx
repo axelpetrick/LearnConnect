@@ -11,11 +11,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Book, User, Calendar, Users, Play, CheckCircle, UserPlus, GraduationCap, FileText } from 'lucide-react';
+import { Book, User, Calendar, Users, Play, CheckCircle, UserPlus, GraduationCap, FileText, Plus } from 'lucide-react';
 import { Course, CourseEnrollment, Note } from '@shared/schema';
 
 export default function CourseDetail() {
@@ -23,6 +24,10 @@ export default function CourseDetail() {
   const [selectedStudent, setSelectedStudent] = useState('');
   const [gradeValue, setGradeValue] = useState('');
   const [gradingStudent, setGradingStudent] = useState<number | null>(null);
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteContent, setNoteContent] = useState('');
+  const [noteIsPublic, setNoteIsPublic] = useState(true);
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const { id } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -39,10 +44,27 @@ export default function CourseDetail() {
     enabled: !!course?.authorId,
   });
 
-  // Buscar estudantes matriculados (para todos os usuários)
-  const { data: enrolledStudents = [] } = useQuery<CourseEnrollment[]>({
-    queryKey: ['/api/courses', id, 'students'],
-    enabled: !!id,
+  // Buscar estudantes matriculados com informações do usuário
+  const { data: enrolledStudents = [] } = useQuery<any[]>({
+    queryKey: ['/api/courses', id, 'enrollments-with-users'],
+    queryFn: async () => {
+      if (!id) return [];
+      // Buscar matrículas
+      const enrollments = await fetch(`/api/courses/${id}/students`).then(res => res.json());
+      // Buscar dados dos usuários para cada matrícula
+      const enrollmentsWithUsers = await Promise.all(
+        enrollments.map(async (enrollment: any) => {
+          const userResponse = await fetch(`/api/users/${enrollment.userId}`);
+          const userData = userResponse.ok ? await userResponse.json() : null;
+          return {
+            ...enrollment,
+            user: userData
+          };
+        })
+      );
+      return enrollmentsWithUsers;
+    },
+    enabled: !!(id && user && ['tutor', 'admin'].includes(user.role)),
   });
 
   // Buscar estudantes disponíveis (para matricular) - com tipagem correta
@@ -53,7 +75,7 @@ export default function CourseDetail() {
 
   // Buscar anotações do curso
   const { data: courseNotes = [] } = useQuery<Note[]>({
-    queryKey: ['/api/notes', 'course', id],
+    queryKey: ['/api/notes/course', id],
     enabled: !!id,
   });
 
@@ -232,18 +254,46 @@ export default function CourseDetail() {
                   <CardContent className="space-y-4">
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">Status</h4>
-                      <Badge variant={course.isPublished ? 'default' : 'secondary'}>
-                        {course.isPublished ? 'Publicado' : 'Rascunho'}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={course.isPublished ? 'default' : 'secondary'}>
+                          {course.isPublished ? 'Publicado' : 'Rascunho'}
+                        </Badge>
+                        {user && ['tutor', 'admin'].includes(user.role) && course.authorId === user.id && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                await apiRequest('PUT', `/api/courses/${course.id}`, {
+                                  isPublished: !course.isPublished
+                                });
+                                toast({
+                                  title: 'Status alterado!',
+                                  description: course.isPublished ? 'Curso despublicado' : 'Curso publicado',
+                                });
+                                queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
+                              } catch (error) {
+                                toast({
+                                  title: 'Erro',
+                                  description: 'Não foi possível alterar o status do curso',
+                                  variant: 'destructive',
+                                });
+                              }
+                            }}
+                          >
+                            {course.isPublished ? 'Despublicar' : 'Publicar'}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">Categoria</h4>
-                      <p className="text-gray-600">{course.category}</p>
+                      <p className="text-gray-600 capitalize">{course.category || 'Não especificada'}</p>
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">Instrutor</h4>
                       <p className="text-gray-600">
-                        {courseAuthor && courseAuthor.firstName ? `${courseAuthor.firstName} ${courseAuthor.lastName}` : 'Carregando...'}
+                        {courseAuthor ? `${courseAuthor.firstName || courseAuthor.username} ${courseAuthor.lastName || ''}`.trim() : 'Carregando...'}
                       </p>
                     </div>
                     <div>
@@ -473,8 +523,11 @@ export default function CourseDetail() {
                                           <User className="w-5 h-5 text-blue-600" />
                                         </div>
                                         <div>
-                                          <p className="font-medium">Estudante #{enrollment.userId}</p>
+                                          <p className="font-medium">
+                                            {enrollment.user ? `${enrollment.user.firstName} ${enrollment.user.lastName}` : `Estudante #${enrollment.userId}`}
+                                          </p>
                                           <p className="text-sm text-gray-500">
+                                            {enrollment.user && `@${enrollment.user.username} • `}
                                             Matriculado em {new Date(enrollment.enrolledAt).toLocaleDateString('pt-BR')}
                                           </p>
                                         </div>
@@ -547,14 +600,25 @@ export default function CourseDetail() {
                           </div>
                           
                           <Button 
-                            onClick={() => {
+                            onClick={async () => {
                               if (selectedStudent) {
-                                toast({
-                                  title: 'Estudante matriculado!',
-                                  description: 'Estudante foi matriculado com sucesso no curso.',
-                                });
-                                setSelectedStudent('');
-                                queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+                                try {
+                                  await apiRequest('POST', `/api/courses/${id}/enroll-student`, {
+                                    studentId: parseInt(selectedStudent)
+                                  });
+                                  toast({
+                                    title: 'Estudante matriculado!',
+                                    description: 'Estudante foi matriculado com sucesso no curso.',
+                                  });
+                                  setSelectedStudent('');
+                                  queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+                                } catch (error) {
+                                  toast({
+                                    title: 'Erro',
+                                    description: 'Não foi possível matricular o estudante',
+                                    variant: 'destructive',
+                                  });
+                                }
                               }
                             }}
                             disabled={!selectedStudent}
@@ -608,9 +672,12 @@ export default function CourseDetail() {
                                         <User className="w-5 h-5 text-purple-600" />
                                       </div>
                                       <div>
-                                        <p className="font-medium">Estudante #{enrollment.userId}</p>
+                                        <p className="font-medium">
+                                          {enrollment.user ? `${enrollment.user.firstName} ${enrollment.user.lastName}` : `Estudante #${enrollment.userId}`}
+                                        </p>
                                         <div className="flex items-center gap-4 mt-1">
                                           <span className="text-sm text-gray-500">
+                                            {enrollment.user && `@${enrollment.user.username} • `}
                                             Progresso: {enrollment.progress || 0}%
                                           </span>
                                           {enrollment.grade ? (
@@ -654,15 +721,26 @@ export default function CourseDetail() {
                                             </p>
                                           </div>
                                           <Button 
-                                            onClick={() => {
+                                            onClick={async () => {
                                               const grade = parseInt(gradeValue);
                                               if (grade >= 0 && grade <= 100) {
-                                                toast({
-                                                  title: 'Nota atribuída!',
-                                                  description: `Nota ${grade} atribuída com sucesso ao estudante.`,
-                                                });
-                                                setGradeValue('');
-                                                queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+                                                try {
+                                                  await apiRequest('PUT', `/api/courses/${id}/students/${enrollment.userId}/grade`, {
+                                                    grade: grade
+                                                  });
+                                                  toast({
+                                                    title: 'Nota atribuída!',
+                                                    description: `Nota ${grade} atribuída com sucesso ao estudante.`,
+                                                  });
+                                                  setGradeValue('');
+                                                  queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+                                                } catch (error) {
+                                                  toast({
+                                                    title: 'Erro',
+                                                    description: 'Não foi possível atribuir a nota',
+                                                    variant: 'destructive',
+                                                  });
+                                                }
                                               }
                                             }}
                                             className="w-full"
@@ -697,10 +775,85 @@ export default function CourseDetail() {
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-4">
-                            <Button className="w-full" size="lg">
-                              <FileText className="w-4 h-4 mr-2" />
-                              Criar Nova Anotação para Estudantes
-                            </Button>
+                            <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+                              <DialogTrigger asChild>
+                                <Button className="w-full" size="lg">
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Criar Nova Anotação para Estudantes
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>Nova Anotação do Curso</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div>
+                                    <Label htmlFor="note-title">Título</Label>
+                                    <Input
+                                      id="note-title"
+                                      value={noteTitle}
+                                      onChange={(e) => setNoteTitle(e.target.value)}
+                                      placeholder="Título da anotação"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="note-content">Conteúdo</Label>
+                                    <Textarea
+                                      id="note-content"
+                                      value={noteContent}
+                                      onChange={(e) => setNoteContent(e.target.value)}
+                                      placeholder="Escreva o conteúdo da anotação..."
+                                      rows={4}
+                                    />
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="checkbox"
+                                      id="note-public"
+                                      checked={noteIsPublic}
+                                      onChange={(e) => setNoteIsPublic(e.target.checked)}
+                                    />
+                                    <Label htmlFor="note-public">Anotação pública (visível para todos os estudantes)</Label>
+                                  </div>
+                                  <Button 
+                                    onClick={async () => {
+                                      if (noteTitle && noteContent) {
+                                        try {
+                                          await apiRequest('POST', '/api/notes', {
+                                            title: noteTitle,
+                                            content: noteContent,
+                                            isPublic: noteIsPublic,
+                                            courseId: parseInt(id!),
+                                            authorId: user!.id
+                                          });
+                                          toast({
+                                            title: 'Anotação criada!',
+                                            description: 'Nova anotação foi criada com sucesso.',
+                                          });
+                                          setNoteTitle('');
+                                          setNoteContent('');
+                                          setNoteIsPublic(true);
+                                          setNoteDialogOpen(false);
+                                          queryClient.invalidateQueries({ queryKey: ['/api/notes/course', id] });
+                                        } catch (error) {
+                                          toast({
+                                            title: 'Erro',
+                                            description: 'Não foi possível criar a anotação',
+                                            variant: 'destructive',
+                                          });
+                                        }
+                                      }
+                                    }}
+                                    className="w-full"
+                                    size="lg"
+                                    disabled={!noteTitle || !noteContent}
+                                  >
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    Criar Anotação
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
                             
                             {courseNotes.length === 0 ? (
                               <div className="text-center py-8">

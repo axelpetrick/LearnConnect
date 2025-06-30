@@ -349,6 +349,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get notes by course
+  app.get("/api/notes/course/:courseId", async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const notes = await storage.getNotesByCourse(courseId);
+      res.json(notes);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to get course notes' });
+    }
+  });
+
   app.get("/api/notes/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
