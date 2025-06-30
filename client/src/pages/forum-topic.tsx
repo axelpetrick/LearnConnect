@@ -125,7 +125,7 @@ export default function ForumTopicPage() {
                     <div className="flex items-center text-sm text-gray-500 space-x-6 mb-4">
                       <div className="flex items-center">
                         <User className="w-4 h-4 mr-1" />
-                        <span>Por {topic.author?.username || 'Usuário Desconhecido'}</span>
+                        <span>Por {topic.author?.firstName || topic.author?.username || 'Usuário Desconhecido'}</span>
                       </div>
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-1" />

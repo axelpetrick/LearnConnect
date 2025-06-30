@@ -239,6 +239,8 @@ export class DatabaseStorage implements IStorage {
         author: {
           id: users.id,
           username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
           email: users.email,
           role: users.role
         }
@@ -278,8 +280,31 @@ export class DatabaseStorage implements IStorage {
     return topicsWithStats;
   }
 
-  async getForumTopic(id: number): Promise<ForumTopic | undefined> {
-    const [topic] = await db.select().from(forumTopics).where(eq(forumTopics.id, id));
+  async getForumTopic(id: number): Promise<any | undefined> {
+    const [topic] = await db
+      .select({
+        id: forumTopics.id,
+        title: forumTopics.title,
+        content: forumTopics.content,
+        createdAt: forumTopics.createdAt,
+        updatedAt: forumTopics.updatedAt,
+        authorId: forumTopics.authorId,
+        tags: forumTopics.tags,
+        courseId: forumTopics.courseId,
+        isPinned: forumTopics.isPinned,
+        views: forumTopics.views,
+        author: {
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          role: users.role
+        }
+      })
+      .from(forumTopics)
+      .leftJoin(users, eq(forumTopics.authorId, users.id))
+      .where(eq(forumTopics.id, id));
     return topic || undefined;
   }
 

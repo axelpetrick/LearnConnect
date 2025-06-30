@@ -17,6 +17,8 @@ interface CommentWithAuthor extends Omit<ForumComment, 'votes'> {
   author?: {
     id: number;
     username: string;
+    firstName?: string;
+    lastName?: string;
     email: string;
     role: string;
   };
@@ -44,9 +46,12 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Função para exibir o nome do autor - o backend já processa comentários anônimos
+  // Função para exibir o nome do autor - usa firstName como padrão
   const getDisplayName = () => {
-    return comment.author?.username || 'Usuário Desconhecido';
+    if (comment.author) {
+      return comment.author.firstName || comment.author.username || 'Usuário Desconhecido';
+    }
+    return 'Usuário Desconhecido';
   };
 
   const voteMutation = useMutation({

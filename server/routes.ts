@@ -659,6 +659,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           };
         }
+        // Para comentários não anônimos, garantir que firstName seja usado
+        if (comment.author && !comment.isAnonymous) {
+          return {
+            ...comment,
+            author: {
+              ...comment.author,
+              username: comment.author.firstName || comment.author.username
+            }
+          };
+        }
         return comment;
       });
       

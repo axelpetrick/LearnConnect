@@ -290,7 +290,7 @@ export default function Forum() {
                       <div className="flex items-center text-sm text-gray-500 space-x-4">
                         <div className="flex items-center">
                           <User className="w-4 h-4 mr-1" />
-                          <span>{topic.author?.username || 'Autor'}</span>
+                          <span>{topic.author?.firstName || topic.author?.username || 'Autor'}</span>
                         </div>
                         <div className="flex items-center">
                           <Calendar className="w-4 h-4 mr-1" />
