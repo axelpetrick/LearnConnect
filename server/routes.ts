@@ -644,44 +644,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const topicId = parseInt(req.params.id);
       const comments = await storage.getForumComments(topicId);
+      
+      // Os dados do autor já vêm do storage via JOIN
+      // Agora só precisamos ajustar a exibição para admins em comentários anônimos
       const isAdmin = req.user && req.user.role === 'admin';
       
-      // Adicionar dados do autor para cada comentário
-      const commentsWithAuthors = await Promise.all(
-        comments.map(async (comment) => {
-          const author = await storage.getUser(comment.authorId);
-          
-          // Se o comentário é anônimo
-          if (comment.isAnonymous) {
-            return {
-              ...comment,
-              author: {
-                id: null,
-                username: isAdmin && author ? `Anônimo (${author.username})` : 'Anônimo',
-                firstName: null,
-                lastName: null,
-                isAnonymous: true,
-                realAuthor: isAdmin ? author : null
-              }
-            };
-          }
-          
-          // Comentário normal
+      const processedComments = comments.map(comment => {
+        if (comment.isAnonymous && comment.author) {
           return {
             ...comment,
-            author: author ? {
-              id: author.id,
-              username: author.username,
-              firstName: author.firstName,
-              lastName: author.lastName,
-              isAnonymous: false
-            } : null
+            author: {
+              ...comment.author,
+              username: isAdmin ? `Anônimo (${comment.author.username})` : 'Anônimo'
+            }
           };
-        })
-      );
+        }
+        return comment;
+      });
       
-      res.json(commentsWithAuthors);
+      res.json(processedComments);
     } catch (error) {
+      console.error('Error getting comments:', error);
       res.status(500).json({ message: 'Failed to get comments' });
     }
   });
