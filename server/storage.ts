@@ -25,7 +25,10 @@ export interface IStorage {
   // Enrollment methods
   enrollInCourse(userId: number, courseId: number): Promise<CourseEnrollment>;
   getUserEnrollments(userId: number): Promise<CourseEnrollment[]>;
+  getCourseEnrollments(courseId: number): Promise<CourseEnrollment[]>;
   updateProgress(userId: number, courseId: number, progress: number): Promise<void>;
+  setStudentGrade(studentId: number, courseId: number, grade: number): Promise<void>;
+  getStudentsByRole(role: string): Promise<User[]>;
   
   // Notes methods
   getNotes(): Promise<Note[]>;
@@ -185,6 +188,7 @@ export class MemStorage implements IStorage {
       userId,
       courseId,
       progress: 0,
+      grade: null,
       completedAt: null,
       enrolledAt: new Date(),
     };
@@ -207,6 +211,24 @@ export class MemStorage implements IStorage {
       }
       this.enrollments.set(enrollment.id, enrollment);
     }
+  }
+
+  async getCourseEnrollments(courseId: number): Promise<CourseEnrollment[]> {
+    return Array.from(this.enrollments.values()).filter(e => e.courseId === courseId);
+  }
+
+  async setStudentGrade(studentId: number, courseId: number, grade: number): Promise<void> {
+    const enrollment = Array.from(this.enrollments.values()).find(
+      e => e.userId === studentId && e.courseId === courseId
+    );
+    if (enrollment) {
+      enrollment.grade = grade;
+      this.enrollments.set(enrollment.id, enrollment);
+    }
+  }
+
+  async getStudentsByRole(role: string): Promise<User[]> {
+    return Array.from(this.users.values()).filter(user => user.role === role);
   }
 
   // Notes methods
@@ -236,6 +258,7 @@ export class MemStorage implements IStorage {
       authorId: insertNote.authorId,
       courseId: insertNote.courseId || null,
       isPublic: insertNote.isPublic || null,
+      allowedRoles: insertNote.allowedRoles || ['tutor', 'admin'],
       createdAt: new Date(),
       updatedAt: new Date(),
     };

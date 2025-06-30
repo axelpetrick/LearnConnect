@@ -7,14 +7,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Book, User, Calendar, Users, Play, CheckCircle } from 'lucide-react';
-import { Course } from '@shared/schema';
+import { Book, User, Calendar, Users, Play, CheckCircle, UserPlus, GraduationCap, FileText } from 'lucide-react';
+import { Course, CourseEnrollment, Note } from '@shared/schema';
 
 export default function CourseDetail() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState('');
+  const [gradeValue, setGradeValue] = useState('');
+  const [gradingStudent, setGradingStudent] = useState<number | null>(null);
   const { id } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -22,6 +30,24 @@ export default function CourseDetail() {
 
   const { data: course, isLoading, error } = useQuery<Course>({
     queryKey: ['/api/courses', id],
+    enabled: !!id,
+  });
+
+  // Buscar estudantes matriculados (para professores/admin)
+  const { data: enrolledStudents = [] } = useQuery<CourseEnrollment[]>({
+    queryKey: ['/api/courses', id, 'students'],
+    enabled: !!id && user && ['tutor', 'admin'].includes(user.role),
+  });
+
+  // Buscar estudantes disponíveis (para matricular)
+  const { data: availableStudents = [] } = useQuery({
+    queryKey: ['/api/users/students'],
+    enabled: user && ['tutor', 'admin'].includes(user.role),
+  });
+
+  // Buscar anotações do curso
+  const { data: courseNotes = [] } = useQuery<Note[]>({
+    queryKey: ['/api/notes', 'course', id],
     enabled: !!id,
   });
 

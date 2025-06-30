@@ -180,6 +180,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Listar estudantes (para professores matricularem)
+  app.get("/api/users/students", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const students = await storage.getStudentsByRole('student');
+      const studentsWithoutPassword = students.map(student => ({ ...student, password: undefined }));
+      res.json(studentsWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to get students' });
+    }
+  });
+
   // Course routes
   app.get("/api/courses", async (req, res) => {
     try {
@@ -257,6 +268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Matrícula de estudante (self-enrollment)
   app.post("/api/courses/:id/enroll", authenticateToken, async (req: any, res) => {
     try {
       const courseId = parseInt(req.params.id);
@@ -264,6 +276,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(enrollment);
     } catch (error) {
       res.status(400).json({ message: 'Failed to enroll in course' });
+    }
+  });
+
+  // Matricular estudante específico (para professores/admin)
+  app.post("/api/courses/:id/enroll-student", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.id);
+      const { studentId } = req.body;
+      const enrollment = await storage.enrollInCourse(studentId, courseId);
+      res.json(enrollment);
+    } catch (error) {
+      res.status(400).json({ message: 'Failed to enroll student' });
+    }
+  });
+
+  // Ver estudantes matriculados
+  app.get("/api/courses/:id/students", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.id);
+      const enrollments = await storage.getCourseEnrollments(courseId);
+      res.json(enrollments);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to get course students' });
+    }
+  });
+
+  // Atribuir nota a estudante
+  app.put("/api/courses/:courseId/students/:studentId/grade", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const studentId = parseInt(req.params.studentId);
+      const { grade } = req.body;
+      
+      await storage.setStudentGrade(studentId, courseId, grade);
+      res.json({ message: 'Grade assigned successfully' });
+    } catch (error) {
+      res.status(400).json({ message: 'Failed to assign grade' });
     }
   });
 

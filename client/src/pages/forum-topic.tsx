@@ -116,7 +116,7 @@ export default function ForumTopicPage() {
               </CardHeader>
               <CardContent>
                 <div className="prose prose-gray max-w-none">
-                  {topic.content.split('\n').map((paragraph, index) => (
+                  {topic.content && topic.content.split('\n').map((paragraph, index) => (
                     <p key={index} className="mb-4 leading-relaxed">
                       {paragraph}
                     </p>

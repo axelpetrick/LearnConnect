@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -32,6 +32,7 @@ export const courseEnrollments = pgTable("course_enrollments", {
   userId: integer("user_id").notNull().references(() => users.id),
   courseId: integer("course_id").notNull().references(() => courses.id),
   progress: integer("progress").default(0), // 0-100
+  grade: integer("grade"), // nota do aluno (0-100)
   completedAt: timestamp("completed_at"),
   enrolledAt: timestamp("enrolled_at").notNull().defaultNow(),
 });
@@ -44,6 +45,7 @@ export const notes = pgTable("notes", {
   authorId: integer("author_id").notNull().references(() => users.id),
   courseId: integer("course_id").references(() => courses.id),
   isPublic: boolean("is_public").default(false),
+  allowedRoles: text("allowed_roles").array().default(['tutor', 'admin']), // quais perfis podem ver
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -77,6 +79,18 @@ export const commentVotes = pgTable("comment_votes", {
   userId: integer("user_id").notNull().references(() => users.id),
   commentId: integer("comment_id").notNull().references(() => forumComments.id),
   voteType: integer("vote_type").notNull(), // 1 for upvote, -1 for downvote
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull(), // 'grade', 'enrollment', 'note', 'forum'
+  relatedId: integer("related_id"), // ID do item relacionado (curso, nota, etc)
+  relatedType: text("related_type"), // 'course', 'note', 'topic'
+  isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -130,4 +144,5 @@ export type InsertForumTopic = z.infer<typeof insertForumTopicSchema>;
 export type ForumComment = typeof forumComments.$inferSelect;
 export type InsertForumComment = z.infer<typeof insertForumCommentSchema>;
 export type CommentVote = typeof commentVotes.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
 export type LoginData = z.infer<typeof loginSchema>;
