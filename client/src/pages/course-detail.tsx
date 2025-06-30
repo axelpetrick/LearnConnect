@@ -361,16 +361,6 @@ export default function CourseDetail() {
               </div>
               
               <div className="mt-6 sm:mt-0 sm:ml-6">
-                {canEnroll && !isAuthor && (
-                  <Button
-                    onClick={() => enrollMutation.mutate()}
-                    disabled={enrollMutation.isPending}
-                    size="lg"
-                    className="w-full sm:w-auto"
-                  >
-                    {enrollMutation.isPending ? 'Matriculando...' : 'Matricular-se'}
-                  </Button>
-                )}
                 {isAuthor && (
                   <div className="flex items-center space-x-2 text-sm text-gray-500">
                     <CheckCircle className="w-4 h-4 text-green-500" />
@@ -495,27 +485,7 @@ export default function CourseDetail() {
                   </CardContent>
                 </Card>
 
-                {canEnroll && !isAuthor && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Começar Agora</CardTitle>
-                      <CardDescription>
-                        Matricule-se para ter acesso completo ao curso
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button
-                        onClick={() => enrollMutation.mutate()}
-                        disabled={enrollMutation.isPending}
-                        className="w-full"
-                        size="lg"
-                      >
-                        <Play className="w-4 h-4 mr-2" />
-                        {enrollMutation.isPending ? 'Matriculando...' : 'Iniciar Curso'}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
+
               </div>
             </div>
 

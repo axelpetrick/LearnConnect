@@ -152,6 +152,13 @@ Changelog:
   * Enhanced "Colegas de Turma" with real enrollment data and individual progress tracking
   * Added progress statistics: average progress, active students count
   * Fixed cache invalidation to update all data in real-time when notes are marked complete
+- June 30, 2025: Course management finalization and UI cleanup
+  * Students now see only enrolled courses when clicking "Cursos"
+  * Implemented grade-based status system: Cursando (blue), Reprovado (red), Aprovado (green)
+  * Removed unnecessary course info: student count, creation date, last update
+  * Added class average grade calculation based on student grades
+  * Removed enrollment buttons and "Começar Agora" section for cleaner interface
+  * Fixed student names display in "Colegas de Turma" section
 ```
 
 ## User Preferences
