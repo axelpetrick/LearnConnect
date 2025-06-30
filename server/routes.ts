@@ -650,12 +650,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isAdmin = req.user && req.user.role === 'admin';
       
       const processedComments = comments.map(comment => {
-        console.log('Processing comment:', comment.id, 'isAnonymous:', comment.isAnonymous, 'author:', comment.author);
         if (comment.author) {
           const displayName = comment.isAnonymous 
             ? (isAdmin ? `Anônimo (${comment.author.firstName || comment.author.username})` : 'Anônimo')
             : (comment.author.firstName || comment.author.username);
-          console.log('Display name will be:', displayName);
           return {
             ...comment,
             author: {

@@ -46,12 +46,9 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Função para exibir o nome do autor - usa firstName como padrão
+  // Função para exibir o nome do autor - o backend já processa o nome correto
   const getDisplayName = () => {
-    if (comment.author) {
-      return comment.author.firstName || comment.author.username || 'Usuário Desconhecido';
-    }
-    return 'Usuário Desconhecido';
+    return comment.author?.username || 'Usuário Desconhecido';
   };
 
   const voteMutation = useMutation({
