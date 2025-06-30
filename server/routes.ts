@@ -608,8 +608,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Topic not found' });
       }
       
+      // Buscar dados do autor
+      const author = await storage.getUser(topic.authorId);
+      
       await storage.incrementTopicViews(id);
-      res.json(topic);
+      res.json({
+        ...topic,
+        author: author ? {
+          id: author.id,
+          username: author.username,
+          firstName: author.firstName,
+          lastName: author.lastName
+        } : null
+      });
     } catch (error) {
       res.status(500).json({ message: 'Failed to get topic' });
     }
@@ -629,11 +640,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/forum/topics/:id/comments", async (req, res) => {
+  app.get("/api/forum/topics/:id/comments", async (req: any, res) => {
     try {
       const topicId = parseInt(req.params.id);
       const comments = await storage.getForumComments(topicId);
-      res.json(comments);
+      const isAdmin = req.user && req.user.role === 'admin';
+      
+      // Adicionar dados do autor para cada comentário
+      const commentsWithAuthors = await Promise.all(
+        comments.map(async (comment) => {
+          const author = await storage.getUser(comment.authorId);
+          
+          // Se o comentário é anônimo
+          if (comment.isAnonymous) {
+            return {
+              ...comment,
+              author: {
+                id: null,
+                username: isAdmin && author ? `Anônimo (${author.username})` : 'Anônimo',
+                firstName: null,
+                lastName: null,
+                isAnonymous: true,
+                realAuthor: isAdmin ? author : null
+              }
+            };
+          }
+          
+          // Comentário normal
+          return {
+            ...comment,
+            author: author ? {
+              id: author.id,
+              username: author.username,
+              firstName: author.firstName,
+              lastName: author.lastName,
+              isAnonymous: false
+            } : null
+          };
+        })
+      );
+      
+      res.json(commentsWithAuthors);
     } catch (error) {
       res.status(500).json({ message: 'Failed to get comments' });
     }

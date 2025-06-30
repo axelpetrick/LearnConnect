@@ -70,6 +70,7 @@ export const forumComments = pgTable("forum_comments", {
   topicId: integer("topic_id").notNull().references(() => forumTopics.id),
   parentId: integer("parent_id").references(() => forumComments.id),
   votes: integer("votes").default(0),
+  isAnonymous: boolean("is_anonymous").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

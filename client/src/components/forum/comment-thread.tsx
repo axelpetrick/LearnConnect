@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/use-auth';
@@ -150,7 +151,9 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
             </Avatar>
             <div className="flex-1">
               <div className="flex items-center space-x-2">
-                <span className="font-medium text-sm">Usuário</span>
+                <span className="font-medium text-sm">
+                  {comment.author?.username || 'Usuário Desconhecido'}
+                </span>
                 <div className="flex items-center text-xs text-gray-500">
                   <Calendar className="w-3 h-3 mr-1" />
                   {new Date(comment.createdAt).toLocaleDateString('pt-BR')}
@@ -292,19 +295,22 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
 
 export function CommentThread({ topicId, comments }: CommentThreadProps) {
   const [newComment, setNewComment] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const commentMutation = useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async ({ content, isAnonymous }: { content: string; isAnonymous: boolean }) => {
       return apiRequest('POST', '/api/forum/comments', {
         content,
         topicId,
+        isAnonymous,
       });
     },
     onSuccess: () => {
       setNewComment('');
+      setIsAnonymous(false);
       queryClient.invalidateQueries({ queryKey: ['/api/forum/topics', topicId.toString(), 'comments'] });
       toast({
         title: 'Comentário adicionado!',
@@ -322,7 +328,7 @@ export function CommentThread({ topicId, comments }: CommentThreadProps) {
 
   const handleAddComment = () => {
     if (newComment.trim()) {
-      commentMutation.mutate(newComment);
+      commentMutation.mutate({ content: newComment, isAnonymous });
     }
   };
 
@@ -349,7 +355,17 @@ export function CommentThread({ topicId, comments }: CommentThreadProps) {
             onChange={(e) => setNewComment(e.target.value)}
             rows={4}
           />
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="anonymous"
+                checked={isAnonymous}
+                onCheckedChange={(checked) => setIsAnonymous(checked === true)}
+              />
+              <label htmlFor="anonymous" className="text-sm text-gray-700">
+                Comentar anonimamente
+              </label>
+            </div>
             <Button
               onClick={handleAddComment}
               disabled={commentMutation.isPending || !newComment.trim()}
