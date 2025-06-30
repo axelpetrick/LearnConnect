@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { ChevronUp, ChevronDown, Reply, Calendar } from 'lucide-react';
+import { ChevronUp, ChevronDown, Reply, Calendar, Edit, Trash2, MoreVertical } from 'lucide-react';
 import { ForumComment } from '@shared/schema';
 
 interface CommentThreadProps {
@@ -24,6 +25,8 @@ interface CommentItemProps {
 function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyContent, setReplyContent] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -70,6 +73,47 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
     },
   });
 
+  const editMutation = useMutation({
+    mutationFn: async (content: string) => {
+      return apiRequest('PUT', `/api/forum/comments/${comment.id}`, { content });
+    },
+    onSuccess: () => {
+      setIsEditing(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/forum/topics', topicId.toString(), 'comments'] });
+      toast({
+        title: 'Comentário editado!',
+        description: 'Seu comentário foi atualizado com sucesso.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao editar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('DELETE', `/api/forum/comments/${comment.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/forum/topics', topicId.toString(), 'comments'] });
+      toast({
+        title: 'Comentário excluído!',
+        description: 'Comentário foi removido com sucesso.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao excluir',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const handleVote = (voteType: number) => {
     voteMutation.mutate({ voteType });
   };
@@ -79,6 +123,21 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
       replyMutation.mutate(replyContent);
     }
   };
+
+  const handleEdit = () => {
+    if (editContent.trim()) {
+      editMutation.mutate(editContent);
+    }
+  };
+
+  const handleDelete = () => {
+    if (confirm('Tem certeza que deseja excluir este comentário?')) {
+      deleteMutation.mutate();
+    }
+  };
+
+  // Verificar se o usuário pode editar/excluir (autor ou admin)
+  const canEdit = user && (user.id === comment.authorId || user.role === 'admin');
 
   return (
     <div className={`${level > 0 ? 'ml-8 border-l-2 border-gray-200 pl-4' : ''}`}>
@@ -129,16 +188,18 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
               </Button>
             </div>
 
-            {/* Reply button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowReplyForm(!showReplyForm)}
-              className="flex items-center space-x-1"
-            >
-              <Reply className="w-4 h-4" />
-              <span>Responder</span>
-            </Button>
+            {/* Reply button - only for top-level comments */}
+            {level === 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowReplyForm(!showReplyForm)}
+                className="flex items-center space-x-1"
+              >
+                <Reply className="w-4 h-4" />
+                <span>Responder</span>
+              </Button>
+            )}
           </div>
 
           {/* Reply form */}

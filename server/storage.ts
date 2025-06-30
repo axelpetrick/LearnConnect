@@ -292,15 +292,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async voteOnComment(userId: number, commentId: number, voteType: number): Promise<void> {
-    try {
+    // Verificar se o usuário já votou neste comentário
+    const existingVote = await db
+      .select()
+      .from(commentVotes)
+      .where(and(eq(commentVotes.userId, userId), eq(commentVotes.commentId, commentId)))
+      .limit(1);
+
+    if (existingVote.length > 0) {
+      // Se o voto é o mesmo, remover o voto (cancelar)
+      if (existingVote[0].voteType === voteType) {
+        await db
+          .delete(commentVotes)
+          .where(and(eq(commentVotes.userId, userId), eq(commentVotes.commentId, commentId)));
+      } else {
+        // Se o voto é diferente, atualizar
+        await db
+          .update(commentVotes)
+          .set({ voteType })
+          .where(and(eq(commentVotes.userId, userId), eq(commentVotes.commentId, commentId)));
+      }
+    } else {
+      // Primeiro voto do usuário neste comentário
       await db
         .insert(commentVotes)
         .values({ userId, commentId, voteType });
-    } catch {
-      await db
-        .update(commentVotes)
-        .set({ voteType })
-        .where(and(eq(commentVotes.userId, userId), eq(commentVotes.commentId, commentId)));
     }
   }
 
