@@ -42,7 +42,7 @@ export default function CourseDetail() {
   });
 
   // Buscar informações do autor do curso
-  const { data: courseAuthor } = useQuery<any>({
+  const { data: courseAuthor, isLoading: authorLoading, error: authorError } = useQuery<any>({
     queryKey: ['/api/users', course?.authorId],
     enabled: !!course?.authorId,
   });
@@ -237,13 +237,15 @@ export default function CourseDetail() {
                   <div className="flex items-center">
                     <User className="w-4 h-4 mr-1" />
                     <span>
-                      {courseAuthor && courseAuthor.firstName ? `${courseAuthor.firstName} ${courseAuthor.lastName}` : 'Carregando...'}
+                      {courseAuthor ? 
+                        (courseAuthor.firstName ? `${courseAuthor.firstName} ${courseAuthor.lastName}` : courseAuthor.username) 
+                        : (authorLoading ? 'Carregando...' : 'Professor')}
                     </span>
                   </div>
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-1" />
                     <span>
-                      Criado em {course.createdAt ? new Date(course.createdAt).toLocaleDateString('pt-BR') : 'Data indisponível'}
+                      Criado em {course.createdAt ? new Date(course.createdAt).toLocaleDateString('pt-BR') : 'Data não disponível'}
                     </span>
                   </div>
                   <div className="flex items-center">
@@ -362,7 +364,9 @@ export default function CourseDetail() {
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">Instrutor</h4>
                       <p className="text-gray-600">
-                        {courseAuthor ? `${courseAuthor.firstName || courseAuthor.username} ${courseAuthor.lastName || ''}`.trim() : 'Carregando...'}
+                        {courseAuthor ? 
+                          (courseAuthor.firstName ? `${courseAuthor.firstName} ${courseAuthor.lastName}` : courseAuthor.username) 
+                          : (authorLoading ? 'Carregando...' : 'Professor')}
                       </p>
                     </div>
                     <div>
