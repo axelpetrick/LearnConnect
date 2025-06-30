@@ -276,6 +276,459 @@ export default function CourseDetail() {
                 )}
               </div>
             </div>
+
+            {/* Funcionalidades Avançadas */}
+            <div className="mt-12">
+              {/* Para Estudantes */}
+              {user?.role === 'student' && (
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-bold">Minha Área do Curso</h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <GraduationCap className="w-5 h-5" />
+                          Meu Desempenho
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-center p-4 bg-blue-50 rounded-lg">
+                            <p className="text-2xl font-bold text-blue-600">85</p>
+                            <p className="text-sm text-blue-600">Minha Nota</p>
+                          </div>
+                          <div className="text-center p-4 bg-green-50 rounded-lg">
+                            <p className="text-2xl font-bold text-green-600">75%</p>
+                            <p className="text-sm text-green-600">Progresso</p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="bg-green-600 h-2 rounded-full" style={{ width: '75%' }}></div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Users className="w-5 h-5" />
+                          Colegas de Turma
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {enrolledStudents.length === 0 ? (
+                            <p className="text-gray-500">Seja o primeiro a se matricular!</p>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {enrolledStudents.slice(0, 8).map((enrollment, index) => (
+                                <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                                  <User className="w-3 h-3" />
+                                  Estudante {enrollment.userId}
+                                </Badge>
+                              ))}
+                              {enrolledStudents.length > 8 && (
+                                <Badge variant="outline">
+                                  +{enrolledStudents.length - 8} mais
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                          <p className="text-sm text-gray-500 mt-2">
+                            Total de {enrolledStudents.length} estudantes matriculados
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        Anotações do Professor
+                      </CardTitle>
+                      <CardDescription>
+                        Material disponibilizado pelo professor para estudantes matriculados
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {courseNotes.length === 0 ? (
+                        <div className="text-center py-8">
+                          <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                          <p className="text-gray-500">Nenhuma anotação disponível ainda.</p>
+                          <p className="text-sm text-gray-400">O professor ainda não compartilhou materiais.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {courseNotes.map((note) => (
+                            <div key={note.id} className="p-4 border rounded-lg hover:bg-gray-50">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-lg">{note.title}</h4>
+                                  <p className="text-gray-600 mt-2 line-clamp-3">
+                                    {note.content}
+                                  </p>
+                                  <div className="flex items-center justify-between mt-4">
+                                    <div className="flex gap-2">
+                                      {note.tags?.map((tag, index) => (
+                                        <Badge key={index} variant="outline" className="text-xs">
+                                          {tag}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                    <p className="text-xs text-gray-500">
+                                      {new Date(note.createdAt).toLocaleDateString('pt-BR')}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Para Professores/Admins */}
+              {user && ['tutor', 'admin'].includes(user.role) && (
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-bold">Gerenciar Curso</h2>
+                  
+                  <Tabs defaultValue="students" className="w-full">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="students" className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Estudantes
+                      </TabsTrigger>
+                      <TabsTrigger value="enroll" className="flex items-center gap-2">
+                        <UserPlus className="w-4 h-4" />
+                        Matricular
+                      </TabsTrigger>
+                      <TabsTrigger value="grades" className="flex items-center gap-2">
+                        <GraduationCap className="w-4 h-4" />
+                        Notas
+                      </TabsTrigger>
+                      <TabsTrigger value="notes" className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Anotações
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    {/* Aba Estudantes Matriculados */}
+                    <TabsContent value="students" className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              <Users className="w-5 h-5" />
+                              Estudantes Matriculados
+                            </span>
+                            <Badge variant="secondary">{enrolledStudents.length} total</Badge>
+                          </CardTitle>
+                          <CardDescription>
+                            Visualize todos os estudantes matriculados e seus progressos
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {enrolledStudents.length === 0 ? (
+                            <div className="text-center py-8">
+                              <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                              <p className="text-gray-500">Nenhum estudante matriculado ainda.</p>
+                              <p className="text-sm text-gray-400">Use a aba "Matricular" para adicionar estudantes.</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              {enrolledStudents.map((enrollment) => (
+                                <div key={enrollment.id} className="p-4 border rounded-lg">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                          <User className="w-5 h-5 text-blue-600" />
+                                        </div>
+                                        <div>
+                                          <p className="font-medium">Estudante #{enrollment.userId}</p>
+                                          <p className="text-sm text-gray-500">
+                                            Matriculado em {new Date(enrollment.enrolledAt).toLocaleDateString('pt-BR')}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="mt-3 grid grid-cols-2 gap-4">
+                                        <div>
+                                          <p className="text-sm text-gray-500">Progresso</p>
+                                          <div className="flex items-center gap-2">
+                                            <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                              <div 
+                                                className="bg-blue-600 h-2 rounded-full" 
+                                                style={{ width: `${enrollment.progress || 0}%` }}
+                                              ></div>
+                                            </div>
+                                            <span className="text-sm font-medium">{enrollment.progress || 0}%</span>
+                                          </div>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm text-gray-500">Nota</p>
+                                          {enrollment.grade ? (
+                                            <Badge variant={enrollment.grade >= 70 ? "default" : "destructive"}>
+                                              {enrollment.grade}/100
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="outline">Não avaliado</Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    {/* Aba Matricular Estudantes */}
+                    <TabsContent value="enroll" className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <UserPlus className="w-5 h-5" />
+                            Matricular Novos Estudantes
+                          </CardTitle>
+                          <CardDescription>
+                            Selecione estudantes com cadastro ativo para matricular no curso
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div>
+                            <Label htmlFor="student">Selecionar Estudante</Label>
+                            <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Escolha um estudante para matricular" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableStudents.map((student: any) => (
+                                  <SelectItem key={student.id} value={student.id.toString()}>
+                                    <div className="flex items-center gap-2">
+                                      <User className="w-4 h-4" />
+                                      {student.firstName} {student.lastName} ({student.username})
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <Button 
+                            onClick={() => {
+                              if (selectedStudent) {
+                                toast({
+                                  title: 'Estudante matriculado!',
+                                  description: 'Estudante foi matriculado com sucesso no curso.',
+                                });
+                                setSelectedStudent('');
+                                queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+                              }
+                            }}
+                            disabled={!selectedStudent}
+                            className="w-full"
+                            size="lg"
+                          >
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Matricular Estudante
+                          </Button>
+                          
+                          {availableStudents.length === 0 && (
+                            <Alert>
+                              <AlertDescription>
+                                <div className="flex items-center gap-2">
+                                  <Users className="w-4 h-4" />
+                                  Não há estudantes disponíveis para matrícula no momento.
+                                </div>
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    {/* Aba Dar Notas */}
+                    <TabsContent value="grades" className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <GraduationCap className="w-5 h-5" />
+                            Atribuir Notas aos Estudantes
+                          </CardTitle>
+                          <CardDescription>
+                            Avalie o desempenho dos estudantes matriculados
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {enrolledStudents.length === 0 ? (
+                            <div className="text-center py-8">
+                              <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                              <p className="text-gray-500">Nenhum estudante matriculado para avaliar.</p>
+                              <p className="text-sm text-gray-400">Matricule estudantes primeiro para poder avaliá-los.</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              {enrolledStudents.map((enrollment) => (
+                                <div key={enrollment.id} className="p-4 border rounded-lg">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                        <User className="w-5 h-5 text-purple-600" />
+                                      </div>
+                                      <div>
+                                        <p className="font-medium">Estudante #{enrollment.userId}</p>
+                                        <div className="flex items-center gap-4 mt-1">
+                                          <span className="text-sm text-gray-500">
+                                            Progresso: {enrollment.progress || 0}%
+                                          </span>
+                                          {enrollment.grade ? (
+                                            <Badge variant={enrollment.grade >= 70 ? "default" : "destructive"}>
+                                              Nota atual: {enrollment.grade}/100
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="outline">Sem nota</Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button size="sm" variant="outline">
+                                          <GraduationCap className="w-4 h-4 mr-1" />
+                                          {enrollment.grade ? 'Alterar Nota' : 'Dar Nota'}
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent>
+                                        <DialogHeader>
+                                          <DialogTitle>
+                                            {enrollment.grade ? 'Alterar Nota' : 'Atribuir Nota'}
+                                          </DialogTitle>
+                                        </DialogHeader>
+                                        <div className="space-y-4">
+                                          <div>
+                                            <Label htmlFor="grade">Nota (0-100)</Label>
+                                            <Input
+                                              id="grade"
+                                              type="number"
+                                              min="0"
+                                              max="100"
+                                              value={gradeValue}
+                                              onChange={(e) => setGradeValue(e.target.value)}
+                                              placeholder={enrollment.grade?.toString() || "Digite a nota"}
+                                            />
+                                            <p className="text-sm text-gray-500 mt-1">
+                                              Nota mínima para aprovação: 70
+                                            </p>
+                                          </div>
+                                          <Button 
+                                            onClick={() => {
+                                              const grade = parseInt(gradeValue);
+                                              if (grade >= 0 && grade <= 100) {
+                                                toast({
+                                                  title: 'Nota atribuída!',
+                                                  description: `Nota ${grade} atribuída com sucesso ao estudante.`,
+                                                });
+                                                setGradeValue('');
+                                                queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+                                              }
+                                            }}
+                                            className="w-full"
+                                            size="lg"
+                                          >
+                                            <GraduationCap className="w-4 h-4 mr-2" />
+                                            Salvar Nota
+                                          </Button>
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    
+                    {/* Aba Anotações */}
+                    <TabsContent value="notes" className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <FileText className="w-5 h-5" />
+                            Anotações para Estudantes
+                          </CardTitle>
+                          <CardDescription>
+                            Disponibilize anotações que os estudantes matriculados poderão visualizar
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <Button className="w-full" size="lg">
+                              <FileText className="w-4 h-4 mr-2" />
+                              Criar Nova Anotação para Estudantes
+                            </Button>
+                            
+                            {courseNotes.length === 0 ? (
+                              <div className="text-center py-8">
+                                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                                <p className="text-gray-500">Nenhuma anotação criada ainda.</p>
+                                <p className="text-sm text-gray-400">Crie anotações para compartilhar com seus estudantes.</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                {courseNotes.map((note) => (
+                                  <div key={note.id} className="p-4 border rounded-lg">
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-medium text-lg">{note.title}</h4>
+                                        <p className="text-gray-600 mt-2 line-clamp-2">
+                                          {note.content}
+                                        </p>
+                                        <div className="flex items-center justify-between mt-4">
+                                          <div className="flex gap-2">
+                                            {note.tags?.map((tag, index) => (
+                                              <Badge key={index} variant="outline" className="text-xs">
+                                                {tag}
+                                              </Badge>
+                                            ))}
+                                          </div>
+                                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                                            <span>{note.isPublic ? 'Público' : 'Privado'}</span>
+                                            <span>•</span>
+                                            <span>{new Date(note.createdAt).toLocaleDateString('pt-BR')}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-2 ml-4">
+                                        <Button size="sm" variant="outline">
+                                          Editar
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
