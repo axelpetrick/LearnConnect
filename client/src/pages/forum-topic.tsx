@@ -15,12 +15,22 @@ export default function ForumTopicPage() {
   const { id } = useParams();
 
   const { data: topic, isLoading: topicLoading, error: topicError } = useQuery<ForumTopic>({
-    queryKey: ['/api/forum/topics', id],
+    queryKey: [`/api/forum/topics/${id}`],
+    queryFn: async () => {
+      const response = await fetch(`/api/forum/topics/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch topic');
+      return response.json();
+    },
     enabled: !!id,
   });
 
   const { data: comments = [], isLoading: commentsLoading } = useQuery<ForumComment[]>({
     queryKey: ['/api/forum/topics', id, 'comments'],
+    queryFn: async () => {
+      const response = await fetch(`/api/forum/topics/${id}/comments`);
+      if (!response.ok) throw new Error('Failed to fetch comments');
+      return response.json();
+    },
     enabled: !!id,
   });
 
