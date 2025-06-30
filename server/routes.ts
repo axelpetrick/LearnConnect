@@ -640,7 +640,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/forum/topics/:id/comments", async (req: any, res) => {
+  app.get("/api/forum/topics/:id/comments", authenticateToken, async (req: any, res) => {
     try {
       const topicId = parseInt(req.params.id);
       const comments = await storage.getForumComments(topicId);
