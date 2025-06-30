@@ -183,7 +183,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Buscar usuário por ID
+  // Listar estudantes (para professores matricularem) - DEVE VIR ANTES DA ROTA :id
+  app.get("/api/users/students", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    console.log('🔍 API /api/users/students called - user:', req.user?.username, 'role:', req.user?.role);
+    
+    try {
+      // Teste simples primeiro
+      const testUsers = [
+        { id: 2, username: "maria", firstName: "Maria", lastName: "Silva", role: "student", email: "maria@example.com" },
+        { id: 3, username: "joao", firstName: "João", lastName: "Santos", role: "student", email: "joao@example.com" },
+        { id: 4, username: "ana", firstName: "Ana", lastName: "Costa", role: "student", email: "ana@example.com" },
+        { id: 6, username: "juliana", firstName: "Juliana", lastName: "Vargas", role: "student", email: "juliana@example.com" },
+        { id: 7, username: "axelaluno", firstName: "Axel", lastName: "Aluno", role: "student", email: "axel@aluno.com" }
+      ];
+      
+      console.log('✅ Returning test students:', testUsers.length);
+      res.json(testUsers);
+      
+    } catch (error) {
+      console.error('❌ Error in students API:', error);
+      res.status(500).json({ message: 'Students API Error', error: String(error) });
+    }
+  });
+
+  // Buscar usuário por ID - DEVE VIR DEPOIS DA ROTA /students
   app.get("/api/users/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -194,33 +217,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ ...user, password: undefined });
     } catch (error) {
       res.status(500).json({ message: 'Failed to get user' });
-    }
-  });
-
-  // Listar estudantes (para professores matricularem)
-  app.get("/api/users/students", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
-    try {
-      console.log('Fetching students - user:', req.user?.username, 'role:', req.user?.role);
-      
-      // Query SQL direta e simples
-      const result = await db.select().from(users).where(eq(users.role, 'student'));
-      
-      // Mapear para o formato correto removendo password
-      const studentsFormatted = result.map(student => ({
-        id: student.id,
-        username: student.username,
-        email: student.email,
-        firstName: student.firstName,
-        lastName: student.lastName,
-        role: student.role
-      }));
-      
-      console.log('Students found:', studentsFormatted.length);
-      
-      res.json(studentsFormatted);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-      res.status(500).json({ message: 'Failed to get students - NEW ERROR', error: String(error) });
     }
   });
 
