@@ -485,7 +485,9 @@ export default function CourseDetail() {
                         <div>
                           <p className="font-medium text-gray-900">
                             {courseAuthor ? 
-                              (courseAuthor.firstName ? `${courseAuthor.firstName} ${courseAuthor.lastName}` : courseAuthor.username) 
+                              (courseAuthor.firstName && courseAuthor.lastName ? 
+                                `${courseAuthor.firstName} ${courseAuthor.lastName}` : 
+                                courseAuthor.username) 
                               : (authorLoading ? 'Carregando...' : 'Professor não definido')}
                           </p>
                           <p className="text-sm text-gray-500">
@@ -588,14 +590,16 @@ export default function CourseDetail() {
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">Categoria</h4>
-                      <p className="text-gray-600 capitalize">{course.category || 'Não especificada'}</p>
+                      <p className="text-gray-600 capitalize">{course?.category || 'Não especificada'}</p>
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">Instrutor</h4>
                       <p className="text-gray-600">
                         {courseAuthor ? 
-                          (courseAuthor.firstName ? `${courseAuthor.firstName} ${courseAuthor.lastName}` : courseAuthor.username) 
-                          : (authorLoading ? 'Carregando...' : 'Professor')}
+                          (courseAuthor.firstName && courseAuthor.lastName ? 
+                            `${courseAuthor.firstName} ${courseAuthor.lastName}` : 
+                            courseAuthor.username) 
+                          : (authorLoading ? 'Carregando...' : 'Não definido')}
                       </p>
                     </div>
                   </CardContent>
