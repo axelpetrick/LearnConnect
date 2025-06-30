@@ -38,6 +38,18 @@ export default function Courses() {
     queryKey: ['/api/courses'],
   });
 
+  const { data: userEnrollments = [] } = useQuery({
+    queryKey: ['/api/users/enrollments'],
+    enabled: user?.role === 'student',
+  });
+
+  // Filtrar cursos para estudantes - mostrar apenas matriculados
+  const displayCourses = user?.role === 'student' 
+    ? courses.filter(course => 
+        userEnrollments.some((enrollment: any) => enrollment.courseId === course.id)
+      )
+    : courses;
+
   const createCourseMutation = useMutation({
     mutationFn: async (courseData: InsertCourse) => {
       const response = await apiRequest('POST', '/api/courses', courseData);
@@ -94,10 +106,10 @@ export default function Courses() {
 
   const canCreateCourse = user?.role === 'tutor' || user?.role === 'admin';
 
-  const filteredCourses = courses.filter(course =>
+  const filteredCourses = displayCourses.filter(course =>
     course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    course.category.toLowerCase().includes(searchQuery.toLowerCase())
+    (course.category && course.category.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   if (isLoading) {

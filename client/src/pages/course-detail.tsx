@@ -428,37 +428,55 @@ export default function CourseDetail() {
                     <CardTitle>Informações do Curso</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Status para estudantes ou status de publicação para professores */}
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">Status</h4>
                       <div className="flex items-center gap-2">
-                        <Badge variant={course.isPublished ? 'default' : 'secondary'}>
-                          {course.isPublished ? 'Publicado' : 'Rascunho'}
-                        </Badge>
-                        {user && ['tutor', 'admin'].includes(user.role) && course.authorId === user.id && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={async () => {
-                              try {
-                                await apiRequest('PUT', `/api/courses/${course.id}`, {
-                                  isPublished: !course.isPublished
-                                });
-                                toast({
-                                  title: 'Status alterado!',
-                                  description: course.isPublished ? 'Curso despublicado' : 'Curso publicado',
-                                });
-                                queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
-                              } catch (error) {
-                                toast({
-                                  title: 'Erro',
-                                  description: 'Não foi possível alterar o status do curso',
-                                  variant: 'destructive',
-                                });
-                              }
-                            }}
-                          >
-                            {course.isPublished ? 'Despublicar' : 'Publicar'}
-                          </Button>
+                        {user?.role === 'student' ? (
+                          // Sistema de status para estudantes baseado na nota
+                          (() => {
+                            const studentGrade = myEnrollment?.grade;
+                            if (!studentGrade || studentGrade === 0) {
+                              return <Badge className="bg-blue-500 text-white">Cursando</Badge>;
+                            } else if (studentGrade < 70) {
+                              return <Badge className="bg-red-500 text-white">Reprovado</Badge>;
+                            } else {
+                              return <Badge className="bg-green-500 text-white">Aprovado</Badge>;
+                            }
+                          })()
+                        ) : (
+                          // Status de publicação para professores/admins
+                          <>
+                            <Badge variant={course.isPublished ? 'default' : 'secondary'}>
+                              {course.isPublished ? 'Publicado' : 'Rascunho'}
+                            </Badge>
+                            {user && ['tutor', 'admin'].includes(user.role) && course.authorId === user.id && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={async () => {
+                                  try {
+                                    await apiRequest('PUT', `/api/courses/${course.id}`, {
+                                      isPublished: !course.isPublished
+                                    });
+                                    toast({
+                                      title: 'Status alterado!',
+                                      description: course.isPublished ? 'Curso despublicado' : 'Curso publicado',
+                                    });
+                                    queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
+                                  } catch (error) {
+                                    toast({
+                                      title: 'Erro',
+                                      description: 'Não foi possível alterar o status do curso',
+                                      variant: 'destructive',
+                                    });
+                                  }
+                                }}
+                              >
+                                {course.isPublished ? 'Despublicar' : 'Publicar'}
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -472,32 +490,6 @@ export default function CourseDetail() {
                         {courseAuthor ? 
                           (courseAuthor.firstName ? `${courseAuthor.firstName} ${courseAuthor.lastName}` : courseAuthor.username) 
                           : (authorLoading ? 'Carregando...' : 'Professor')}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Alunos Matriculados</h4>
-                      <p className="text-gray-600">
-                        {enrolledStudents.length} {enrolledStudents.length === 1 ? 'aluno' : 'alunos'}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Data de Criação</h4>
-                      <p className="text-gray-600">
-                        {course.createdAt ? new Date(course.createdAt).toLocaleDateString('pt-BR', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        }) : 'Data indisponível'}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-1">Última Atualização</h4>
-                      <p className="text-gray-600">
-                        {course.updatedAt ? new Date(course.updatedAt).toLocaleDateString('pt-BR', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        }) : 'Data indisponível'}
                       </p>
                     </div>
                   </CardContent>
