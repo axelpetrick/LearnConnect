@@ -95,6 +95,15 @@ export default function CourseDetail() {
     enabled: !!(id && user?.role === 'student'),
   });
 
+  // Buscar dados da matrícula atual do estudante
+  const currentEnrollment = enrolledStudents.find(enrollment => enrollment.userId === user?.id);
+  const myProgress = currentEnrollment?.progress || 0;
+  const myGrade = currentEnrollment?.grade || 0;
+
+  // Calcular estatísticas do progresso
+  const totalNotes = courseNotes.length;
+  const completedNotesCount = completedNotes.length;
+
   const enrollMutation = useMutation({
     mutationFn: async () => {
       return apiRequest('POST', `/api/courses/${id}/enroll`);
@@ -496,16 +505,19 @@ export default function CourseDetail() {
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="text-center p-4 bg-blue-50 rounded-lg">
-                            <p className="text-2xl font-bold text-blue-600">85</p>
+                            <p className="text-2xl font-bold text-blue-600">{myGrade || '--'}</p>
                             <p className="text-sm text-blue-600">Minha Nota</p>
                           </div>
                           <div className="text-center p-4 bg-green-50 rounded-lg">
-                            <p className="text-2xl font-bold text-green-600">75%</p>
+                            <p className="text-2xl font-bold text-green-600">{myProgress}%</p>
                             <p className="text-sm text-green-600">Progresso</p>
                           </div>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-green-600 h-2 rounded-full" style={{ width: '75%' }}></div>
+                          <div className="bg-green-600 h-2 rounded-full transition-all duration-300" style={{ width: `${myProgress}%` }}></div>
+                        </div>
+                        <div className="text-xs text-gray-500 text-center">
+                          {completedNotesCount} de {totalNotes} anotações concluídas
                         </div>
                       </CardContent>
                     </Card>
@@ -522,18 +534,38 @@ export default function CourseDetail() {
                           {enrolledStudents.length === 0 ? (
                             <p className="text-gray-500">Seja o primeiro a se matricular!</p>
                           ) : (
-                            <div className="flex flex-wrap gap-2">
-                              {enrolledStudents.slice(0, 8).map((enrollment, index) => (
-                                <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                                  <User className="w-3 h-3" />
-                                  Estudante {enrollment.userId}
-                                </Badge>
-                              ))}
-                              {enrolledStudents.length > 8 && (
-                                <Badge variant="outline">
-                                  +{enrolledStudents.length - 8} mais
-                                </Badge>
-                              )}
+                            <div className="space-y-3">
+                              <div className="flex flex-wrap gap-2">
+                                {enrolledStudents.slice(0, 6).map((enrollment, index) => {
+                                  const isCurrentUser = enrollment.userId === user?.id;
+                                  return (
+                                    <Badge 
+                                      key={index} 
+                                      variant={isCurrentUser ? "default" : "secondary"} 
+                                      className="flex items-center gap-1"
+                                    >
+                                      <User className="w-3 h-3" />
+                                      {isCurrentUser ? 'Você' : `Estudante ${enrollment.userId}`}
+                                      {enrollment.progress > 0 && (
+                                        <span className="text-xs ml-1">({enrollment.progress}%)</span>
+                                      )}
+                                    </Badge>
+                                  );
+                                })}
+                                {enrolledStudents.length > 6 && (
+                                  <Badge variant="outline">
+                                    +{enrolledStudents.length - 6} mais
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                                <div>
+                                  <span className="font-medium">Progresso médio:</span> {Math.round(enrolledStudents.reduce((acc, e) => acc + (e.progress || 0), 0) / enrolledStudents.length)}%
+                                </div>
+                                <div>
+                                  <span className="font-medium">Ativos:</span> {enrolledStudents.filter(e => (e.progress || 0) > 0).length}
+                                </div>
+                              </div>
                             </div>
                           )}
                           <p className="text-sm text-gray-500 mt-2">
