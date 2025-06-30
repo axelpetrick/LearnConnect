@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -37,7 +38,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const data = await response.json();
-    auth.setToken(data.token);
     auth.setUser(data.user);
     setUser(data.user);
   };
@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -55,13 +56,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const data = await response.json();
-    auth.setToken(data.token);
     auth.setUser(data.user);
     setUser(data.user);
   };
 
-  const logout = () => {
-    auth.removeToken();
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.log('Logout request failed, but clearing local data');
+    }
+    auth.removeUser();
     setUser(null);
   };
 

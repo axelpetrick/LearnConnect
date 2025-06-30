@@ -26,25 +26,21 @@ const upload = multer({
   }
 });
 
-// Authentication middleware
+// Authentication middleware (simplified)
 async function authenticateToken(req: any, res: any, next: any) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ message: 'Access token required' });
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ message: 'Not authenticated' });
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const user = await storage.getUser(decoded.userId);
+    const user = await storage.getUser(req.session.userId);
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
     req.user = user;
     next();
   } catch (error) {
-    return res.status(403).json({ message: 'Invalid token' });
+    return res.status(403).json({ message: 'Authentication error' });
   }
 }
 
@@ -79,11 +75,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password: hashedPassword,
       });
 
-      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+      (req as any).session.userId = user.id;
       
       res.json({ 
-        user: { ...user, password: undefined }, 
-        token 
+        user: { ...user, password: undefined }
       });
     } catch (error) {
       res.status(400).json({ message: 'Invalid registration data' });
@@ -104,11 +99,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
 
-      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+      (req as any).session.userId = user.id;
       
       res.json({ 
-        user: { ...user, password: undefined }, 
-        token 
+        user: { ...user, password: undefined }
       });
     } catch (error) {
       res.status(400).json({ message: 'Invalid login data' });
@@ -117,6 +111,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/me", authenticateToken, async (req: any, res) => {
     res.json({ ...req.user, password: undefined });
+  });
+
+  app.post("/api/auth/logout", (req: any, res) => {
+    req.session.destroy((err: any) => {
+      if (err) {
+        return res.status(500).json({ message: 'Could not log out' });
+      }
+      res.json({ message: 'Logged out successfully' });
+    });
   });
 
   // User routes
