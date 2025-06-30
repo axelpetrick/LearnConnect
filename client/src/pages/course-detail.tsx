@@ -98,7 +98,26 @@ export default function CourseDetail() {
   });
 
   // Buscar dados da matrícula atual do estudante
-  const currentEnrollment = enrolledStudents.find(enrollment => enrollment.userId === user?.id);
+  const { data: userEnrollments = [] } = useQuery<any[]>({
+    queryKey: ['/api/users/enrollments'],
+    queryFn: () => fetch('/api/users/enrollments', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
+      },
+    }).then(res => res.json()),
+    enabled: !!(user?.role === 'student' && user?.id),
+  });
+
+  const myEnrollment = Array.isArray(userEnrollments) 
+    ? userEnrollments.find(e => e.courseId === parseInt(id || '0'))
+    : null;
+
+  // Usar dados da matrícula específica ou buscar nos dados gerais (para admins/tutors)
+  const currentEnrollment = user?.role === 'student' 
+    ? myEnrollment 
+    : enrolledStudents.find(enrollment => enrollment.userId === user?.id);
+    
   const myProgress = currentEnrollment?.progress || 0;
   const myGrade = currentEnrollment?.grade || 0;
 
@@ -205,10 +224,12 @@ export default function CourseDetail() {
       queryClient.invalidateQueries({ queryKey: ['/api/notes/completed', id] });
       queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
       queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/enrollments'] });
       
       // Forçar refetch imediato para atualizar progresso
       setTimeout(() => {
         queryClient.refetchQueries({ queryKey: ['/api/courses', id, 'students'] });
+        queryClient.refetchQueries({ queryKey: ['/api/users/enrollments'] });
       }, 100);
     },
     onError: (error) => {
@@ -234,10 +255,12 @@ export default function CourseDetail() {
       queryClient.invalidateQueries({ queryKey: ['/api/notes/completed', id] });
       queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
       queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/enrollments'] });
       
       // Forçar refetch imediato para atualizar progresso
       setTimeout(() => {
         queryClient.refetchQueries({ queryKey: ['/api/courses', id, 'students'] });
+        queryClient.refetchQueries({ queryKey: ['/api/users/enrollments'] });
       }, 100);
     },
     onError: (error) => {

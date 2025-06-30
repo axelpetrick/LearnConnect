@@ -183,6 +183,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Buscar matrículas do usuário atual
+  app.get("/api/users/enrollments", authenticateToken, async (req: any, res) => {
+    try {
+      const enrollments = await storage.getUserEnrollments(req.user.id);
+      res.json(enrollments);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to get user enrollments' });
+    }
+  });
+
   // Listar estudantes (para professores matricularem) - DEVE VIR ANTES DA ROTA :id
   app.get("/api/users/students", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
     console.log('🔍 API /api/users/students called - user:', req.user?.username, 'role:', req.user?.role);
