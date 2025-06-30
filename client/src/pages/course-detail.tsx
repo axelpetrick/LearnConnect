@@ -109,7 +109,10 @@ export default function CourseDetail() {
         title: 'Estudante removido',
         description: 'Estudante foi removido do curso com sucesso.',
       });
+      // Invalidar múltiplas queries para atualizar todas as listas
       queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/students'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
     },
     onError: (error) => {
       toast({
@@ -649,7 +652,10 @@ export default function CourseDetail() {
                                     description: 'Estudante foi matriculado com sucesso no curso.',
                                   });
                                   setSelectedStudent('');
+                                  // Invalidar múltiplas queries para atualizar todas as listas
                                   queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+                                  queryClient.invalidateQueries({ queryKey: ['/api/users/students'] });
+                                  queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
                                 } catch (error) {
                                   toast({
                                     title: 'Erro',
@@ -771,7 +777,9 @@ export default function CourseDetail() {
                                                     description: `Nota ${grade} atribuída com sucesso ao estudante.`,
                                                   });
                                                   setGradeValue('');
+                                                  // Invalidar múltiplas queries para atualizar todas as listas
                                                   queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+                                                  queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
                                                 } catch (error) {
                                                   toast({
                                                     title: 'Erro',

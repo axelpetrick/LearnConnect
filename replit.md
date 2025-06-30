@@ -139,6 +139,12 @@ Changelog:
   * Enhanced course detail pages with role-based interfaces
   * Fixed instructor information, enrollment counts, and date formatting
   * Created initial admin user and sample data in database
+- June 30, 2025: Student removal functionality and cache optimization
+  * Added student removal feature from courses with confirmation dialog
+  * Fixed API route conflicts between /api/users/:id and /api/users/students
+  * Implemented proper cache invalidation for all course management operations
+  * Enhanced UI with remove button (trash icon) for enrolled students
+  * Fixed cache refresh issues for enrollment, grading, and removal operations
 ```
 
 ## User Preferences
