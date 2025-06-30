@@ -216,6 +216,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Buscar tutores/professores (para admin definir responsável pelo curso)
+  app.get("/api/users/tutors", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const tutors = await storage.getStudentsByRole('tutor');
+      const admins = await storage.getStudentsByRole('admin');
+      const allTutors = [...tutors, ...admins];
+      res.json(allTutors);
+    } catch (error) {
+      console.error('Error getting tutors:', error);
+      res.status(500).json({ message: 'Failed to get tutors' });
+    }
+  });
+
   // Buscar usuário por ID - DEVE VIR DEPOIS DA ROTA /students
   app.get("/api/users/:id", async (req, res) => {
     try {

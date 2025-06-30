@@ -31,6 +31,15 @@ export default function CourseDetail() {
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editCourseDialogOpen, setEditCourseDialogOpen] = useState(false);
+  const [editCourseData, setEditCourseData] = useState({
+    title: '',
+    description: '',
+    content: '',
+    category: '',
+    tags: '',
+    authorId: 0,
+  });
   const { id } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -73,6 +82,12 @@ export default function CourseDetail() {
   // Buscar estudantes disponíveis (para matricular) - com tipagem correta
   const { data: availableStudents = [] } = useQuery<any[]>({
     queryKey: ['/api/users/students'],
+    enabled: !!(user && ['tutor', 'admin'].includes(user.role)),
+  });
+
+  // Buscar tutores/professores disponíveis (para definir como responsável)
+  const { data: availableTutors = [] } = useQuery<any[]>({
+    queryKey: ['/api/users/tutors'],
     enabled: !!(user && ['tutor', 'admin'].includes(user.role)),
   });
 
@@ -273,6 +288,69 @@ export default function CourseDetail() {
     },
   });
 
+  // Mutation para editar curso
+  const editCourseMutation = useMutation({
+    mutationFn: async (courseData: any) => {
+      return apiRequest('PUT', `/api/courses/${id}`, courseData);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Curso atualizado!',
+        description: 'As informações do curso foram atualizadas com sucesso.',
+      });
+      setEditCourseDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao atualizar curso',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Função para abrir modal de edição e carregar dados
+  const openEditCourseModal = () => {
+    if (course) {
+      setEditCourseData({
+        title: course.title,
+        description: course.description,
+        content: course.content || '',
+        category: course.category || '',
+        tags: course.tags ? course.tags.join(', ') : '',
+        authorId: course.authorId,
+      });
+      setEditCourseDialogOpen(true);
+    }
+  };
+
+  // Função para salvar alterações do curso
+  const handleEditCourse = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editCourseData.title || !editCourseData.description || !editCourseData.category) {
+      toast({
+        title: 'Erro',
+        description: 'Por favor, preencha todos os campos obrigatórios.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const courseData = {
+      title: editCourseData.title,
+      description: editCourseData.description,
+      content: editCourseData.content || null,
+      category: editCourseData.category,
+      tags: editCourseData.tags ? editCourseData.tags.split(',').map(tag => tag.trim()) : null,
+      authorId: editCourseData.authorId,
+    };
+
+    editCourseMutation.mutate(courseData);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex bg-gray-50">
@@ -361,10 +439,22 @@ export default function CourseDetail() {
               </div>
               
               <div className="mt-6 sm:mt-0 sm:ml-6">
-                {isAuthor && (
-                  <div className="flex items-center space-x-2 text-sm text-gray-500">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>Você é o autor deste curso</span>
+                {user && ['tutor', 'admin'].includes(user.role) && (
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={openEditCourseModal}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Editar Curso
+                    </Button>
+                    {isAuthor && (
+                      <div className="flex items-center space-x-2 text-sm text-gray-500">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>Autor</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1248,6 +1338,111 @@ export default function CourseDetail() {
           </div>
         </div>
       </main>
+
+      {/* Modal de Edição de Curso */}
+      <Dialog open={editCourseDialogOpen} onOpenChange={setEditCourseDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Curso</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditCourse} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-title">Título *</Label>
+                <Input
+                  id="edit-title"
+                  value={editCourseData.title}
+                  onChange={(e) => setEditCourseData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Título do curso"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-category">Categoria *</Label>
+                <Select
+                  value={editCourseData.category}
+                  onValueChange={(value) => setEditCourseData(prev => ({ ...prev, category: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="programacao">Programação</SelectItem>
+                    <SelectItem value="design">Design</SelectItem>
+                    <SelectItem value="negocios">Negócios</SelectItem>
+                    <SelectItem value="marketing">Marketing</SelectItem>
+                    <SelectItem value="idiomas">Idiomas</SelectItem>
+                    <SelectItem value="ciencias">Ciências</SelectItem>
+                    <SelectItem value="arte">Arte</SelectItem>
+                    <SelectItem value="musica">Música</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-description">Descrição *</Label>
+              <Textarea
+                id="edit-description"
+                value={editCourseData.description}
+                onChange={(e) => setEditCourseData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Breve descrição do curso"
+                rows={3}
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-content">Conteúdo Detalhado</Label>
+              <Textarea
+                id="edit-content"
+                value={editCourseData.content}
+                onChange={(e) => setEditCourseData(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Descrição detalhada do conteúdo do curso"
+                rows={4}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-tags">Tags (separadas por vírgula)</Label>
+              <Input
+                id="edit-tags"
+                value={editCourseData.tags}
+                onChange={(e) => setEditCourseData(prev => ({ ...prev, tags: e.target.value }))}
+                placeholder="javascript, react, frontend"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-author">Professor Responsável</Label>
+              <Select
+                value={editCourseData.authorId.toString()}
+                onValueChange={(value) => setEditCourseData(prev => ({ ...prev, authorId: parseInt(value) }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o professor responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTutors.map((tutor) => (
+                    <SelectItem key={tutor.id} value={tutor.id.toString()}>
+                      {tutor.firstName ? `${tutor.firstName} ${tutor.lastName}` : tutor.username} ({tutor.role})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex gap-2 pt-4">
+              <Button type="submit" disabled={editCourseMutation.isPending} className="flex-1">
+                {editCourseMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setEditCourseDialogOpen(false)}>
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
