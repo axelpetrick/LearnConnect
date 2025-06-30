@@ -156,7 +156,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStudentsByRole(role: string): Promise<User[]> {
-    return await db.select().from(users).where(eq(users.role, role as any));
+    try {
+      console.log('Getting students with role:', role);
+      const result = await db.select().from(users).where(eq(users.role, role));
+      console.log('Query result:', result);
+      return result;
+    } catch (error) {
+      console.error('Error in getStudentsByRole:', error);
+      throw error;
+    }
   }
 
   async getNotes(): Promise<Note[]> {
@@ -229,10 +237,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async incrementTopicViews(id: number): Promise<void> {
-    await db
-      .update(forumTopics)
-      .set({ views: db.select().from(forumTopics).where(eq(forumTopics.id, id))[0]?.views || 0 + 1 })
-      .where(eq(forumTopics.id, id));
+    // Buscar o tópico atual
+    const [topic] = await db.select().from(forumTopics).where(eq(forumTopics.id, id));
+    if (topic) {
+      await db
+        .update(forumTopics)
+        .set({ views: (topic.views || 0) + 1 })
+        .where(eq(forumTopics.id, id));
+    }
   }
 
   async getForumComments(topicId: number): Promise<ForumComment[]> {

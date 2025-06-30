@@ -197,11 +197,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Listar estudantes (para professores matricularem)
   app.get("/api/users/students", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
     try {
+      console.log('Fetching students...');
       const students = await storage.getStudentsByRole('student');
+      console.log('Students found:', students.length);
       const studentsWithoutPassword = students.map(student => ({ ...student, password: undefined }));
       res.json(studentsWithoutPassword);
     } catch (error) {
-      res.status(500).json({ message: 'Failed to get students' });
+      console.error('Error fetching students:', error);
+      res.status(500).json({ message: 'Failed to get user', error: String(error) });
     }
   });
 

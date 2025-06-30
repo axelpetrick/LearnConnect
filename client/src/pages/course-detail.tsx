@@ -76,6 +76,7 @@ export default function CourseDetail() {
   // Buscar anotações do curso
   const { data: courseNotes = [] } = useQuery<Note[]>({
     queryKey: ['/api/notes/course', id],
+    queryFn: () => fetch(`/api/notes/course/${id}`).then(res => res.json()),
     enabled: !!id,
   });
 
@@ -143,7 +144,7 @@ export default function CourseDetail() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <main className="flex-1 lg:ml-64">
-        <Header title="Detalhes do Curso" onMenuClick={() => setSidebarOpen(true)} />
+        <Header title={course ? course.title : "Carregando curso..."} onMenuClick={() => setSidebarOpen(true)} />
         
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="max-w-4xl mx-auto space-y-8">
