@@ -1,6 +1,6 @@
 import { users, courses, courseEnrollments, notes, forumTopics, forumComments, commentVotes, topicVotes, noteCompletions, type User, type InsertUser, type Course, type InsertCourse, type CourseEnrollment, type Note, type InsertNote, type ForumTopic, type InsertForumTopic, type ForumComment, type InsertForumComment, type CommentVote, type TopicVote } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -26,6 +26,10 @@ export interface IStorage {
   setStudentGrade(studentId: number, courseId: number, grade: number): Promise<void>;
   removeStudentFromCourse(studentId: number, courseId: number): Promise<void>;
   getStudentsByRole(role: string): Promise<User[]>;
+  
+  // Attendance methods
+  markAttendance(studentId: number, courseId: number): Promise<void>;
+  markAbsence(studentId: number, courseId: number): Promise<void>;
   
   // Notes methods
   getNotes(): Promise<Note[]>;
@@ -537,6 +541,48 @@ export class DatabaseStorage implements IStorage {
         voteType,
         createdAt: new Date(),
       });
+    }
+  }
+
+  async markAttendance(studentId: number, courseId: number): Promise<void> {
+    // Buscar matrícula atual
+    const [enrollment] = await db.select()
+      .from(courseEnrollments)
+      .where(and(
+        eq(courseEnrollments.userId, studentId),
+        eq(courseEnrollments.courseId, courseId)
+      ));
+    
+    if (enrollment) {
+      await db.update(courseEnrollments)
+        .set({ 
+          attendanceCount: (enrollment.attendanceCount || 0) + 1
+        })
+        .where(and(
+          eq(courseEnrollments.userId, studentId),
+          eq(courseEnrollments.courseId, courseId)
+        ));
+    }
+  }
+
+  async markAbsence(studentId: number, courseId: number): Promise<void> {
+    // Buscar matrícula atual
+    const [enrollment] = await db.select()
+      .from(courseEnrollments)
+      .where(and(
+        eq(courseEnrollments.userId, studentId),
+        eq(courseEnrollments.courseId, courseId)
+      ));
+    
+    if (enrollment) {
+      await db.update(courseEnrollments)
+        .set({ 
+          absenceCount: (enrollment.absenceCount || 0) + 1
+        })
+        .where(and(
+          eq(courseEnrollments.userId, studentId),
+          eq(courseEnrollments.courseId, courseId)
+        ));
     }
   }
 }

@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Book, User, Calendar, Users, Play, CheckCircle, CheckCircle2, UserPlus, GraduationCap, FileText, Plus, Trash2, Edit, MoreVertical } from 'lucide-react';
+import { Book, User, Calendar, Users, Play, CheckCircle, CheckCircle2, UserPlus, GraduationCap, FileText, Plus, Trash2, Edit, MoreVertical, UserCheck, UserX } from 'lucide-react';
 import { Course, CourseEnrollment, Note } from '@shared/schema';
 
 export default function CourseDetail() {
@@ -140,10 +140,7 @@ export default function CourseDetail() {
     ? userEnrollments.find(e => e.courseId === parseInt(id || '0'))
     : null;
 
-  // Debug: log para verificar os dados
-  console.log('DEBUG - userEnrollments:', userEnrollments);
-  console.log('DEBUG - myEnrollment:', myEnrollment);
-  console.log('DEBUG - courseId:', id);
+
 
   // Usar dados da matrícula específica ou buscar nos dados gerais (para admins/tutors)
   const currentEnrollment = user?.role === 'student' 
@@ -1066,74 +1063,127 @@ export default function CourseDetail() {
                                           ) : (
                                             <Badge variant="outline">Sem nota</Badge>
                                           )}
+                                          <Badge variant="secondary">
+                                            P: {enrollment.attendanceCount || 0} | F: {enrollment.absenceCount || 0}
+                                          </Badge>
                                         </div>
                                       </div>
                                     </div>
                                     
-                                    <Dialog>
-                                      <DialogTrigger asChild>
-                                        <Button size="sm" variant="outline">
-                                          <GraduationCap className="w-4 h-4 mr-1" />
-                                          {enrollment.grade ? 'Alterar Nota' : 'Dar Nota'}
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent>
-                                        <DialogHeader>
-                                          <DialogTitle>
-                                            {enrollment.grade ? 'Alterar Nota' : 'Atribuir Nota'}
-                                          </DialogTitle>
-                                        </DialogHeader>
-                                        <div className="space-y-4">
-                                          <div>
-                                            <Label htmlFor="grade">Nota (0-100)</Label>
-                                            <Input
-                                              id="grade"
-                                              type="number"
-                                              min="0"
-                                              max="100"
-                                              value={gradeValue}
-                                              onChange={(e) => setGradeValue(e.target.value)}
-                                              placeholder={enrollment.grade?.toString() || "Digite a nota"}
-                                            />
-                                            <p className="text-sm text-gray-500 mt-1">
-                                              Nota mínima para aprovação: 70
-                                            </p>
-                                          </div>
-                                          <Button 
-                                            onClick={async () => {
-                                              const grade = parseInt(gradeValue);
-                                              if (grade >= 0 && grade <= 100) {
-                                                try {
-                                                  await apiRequest('PUT', `/api/courses/${id}/students/${enrollment.userId}/grade`, {
-                                                    grade: grade
-                                                  });
-                                                  toast({
-                                                    title: 'Nota atribuída!',
-                                                    description: `Nota ${grade} atribuída com sucesso ao estudante.`,
-                                                  });
-                                                  setGradeValue('');
-                                                  // Invalidar múltiplas queries para atualizar todas as listas
-                                                  queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
-                                                  queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
-                                                  queryClient.invalidateQueries({ queryKey: ['/api/users/enrollments'] });
-                                                } catch (error) {
-                                                  toast({
-                                                    title: 'Erro',
-                                                    description: 'Não foi possível atribuir a nota',
-                                                    variant: 'destructive',
-                                                  });
-                                                }
-                                              }
-                                            }}
-                                            className="w-full"
-                                            size="lg"
-                                          >
-                                            <GraduationCap className="w-4 h-4 mr-2" />
-                                            Salvar Nota
+                                    <div className="flex gap-2">
+                                      <Dialog>
+                                        <DialogTrigger asChild>
+                                          <Button size="sm" variant="outline">
+                                            <GraduationCap className="w-4 h-4 mr-1" />
+                                            {enrollment.grade ? 'Alterar Nota' : 'Dar Nota'}
                                           </Button>
-                                        </div>
-                                      </DialogContent>
-                                    </Dialog>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                          <DialogHeader>
+                                            <DialogTitle>
+                                              {enrollment.grade ? 'Alterar Nota' : 'Atribuir Nota'}
+                                            </DialogTitle>
+                                          </DialogHeader>
+                                          <div className="space-y-4">
+                                            <div>
+                                              <Label htmlFor="grade">Nota (0-100)</Label>
+                                              <Input
+                                                id="grade"
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value={gradeValue}
+                                                onChange={(e) => setGradeValue(e.target.value)}
+                                                placeholder={enrollment.grade?.toString() || "Digite a nota"}
+                                              />
+                                              <p className="text-sm text-gray-500 mt-1">
+                                                Nota mínima para aprovação: 70
+                                              </p>
+                                            </div>
+                                            <Button 
+                                              onClick={async () => {
+                                                const grade = parseInt(gradeValue);
+                                                if (grade >= 0 && grade <= 100) {
+                                                  try {
+                                                    await apiRequest('PUT', `/api/courses/${id}/students/${enrollment.userId}/grade`, {
+                                                      grade: grade
+                                                    });
+                                                    toast({
+                                                      title: 'Nota atribuída!',
+                                                      description: `Nota ${grade} atribuída com sucesso ao estudante.`,
+                                                    });
+                                                    setGradeValue('');
+                                                    // Invalidar múltiplas queries para atualizar todas as listas
+                                                    queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+                                                    queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
+                                                    queryClient.invalidateQueries({ queryKey: ['/api/users/enrollments'] });
+                                                  } catch (error) {
+                                                    toast({
+                                                      title: 'Erro',
+                                                      description: 'Não foi possível atribuir a nota',
+                                                      variant: 'destructive',
+                                                    });
+                                                  }
+                                                }
+                                              }}
+                                              className="w-full"
+                                              size="lg"
+                                            >
+                                              <GraduationCap className="w-4 h-4 mr-2" />
+                                              Salvar Nota
+                                            </Button>
+                                          </div>
+                                        </DialogContent>
+                                      </Dialog>
+                                      
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        onClick={async () => {
+                                          try {
+                                            await apiRequest('POST', `/api/courses/${id}/students/${enrollment.userId}/attendance`);
+                                            toast({
+                                              title: 'Presença marcada!',
+                                              description: 'Presença registrada com sucesso.',
+                                            });
+                                            queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+                                          } catch (error) {
+                                            toast({
+                                              title: 'Erro',
+                                              description: 'Não foi possível marcar presença',
+                                              variant: 'destructive',
+                                            });
+                                          }
+                                        }}
+                                      >
+                                        <UserCheck className="w-4 h-4 mr-1" />
+                                        Presença
+                                      </Button>
+                                      
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        onClick={async () => {
+                                          try {
+                                            await apiRequest('POST', `/api/courses/${id}/students/${enrollment.userId}/absence`);
+                                            toast({
+                                              title: 'Falta marcada!',
+                                              description: 'Falta registrada com sucesso.',
+                                            });
+                                            queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+                                          } catch (error) {
+                                            toast({
+                                              title: 'Erro',
+                                              description: 'Não foi possível marcar falta',
+                                              variant: 'destructive',
+                                            });
+                                          }
+                                        }}
+                                      >
+                                        <UserX className="w-4 h-4 mr-1" />
+                                        Falta
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                               ))}

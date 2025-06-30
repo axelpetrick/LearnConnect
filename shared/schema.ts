@@ -35,6 +35,8 @@ export const courseEnrollments = pgTable("course_enrollments", {
   grade: integer("grade"), // nota do aluno (0-100)
   completedAt: timestamp("completed_at"),
   enrolledAt: timestamp("enrolled_at").notNull().defaultNow(),
+  attendanceCount: integer("attendance_count").default(0), // contador de presenças
+  absenceCount: integer("absence_count").default(0), // contador de faltas
 });
 
 export const notes = pgTable("notes", {

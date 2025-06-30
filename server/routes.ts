@@ -394,6 +394,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Marcar presença de um estudante
+  app.post("/api/courses/:courseId/students/:studentId/attendance", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const studentId = parseInt(req.params.studentId);
+      
+      await storage.markAttendance(studentId, courseId);
+      res.json({ message: 'Attendance marked successfully' });
+    } catch (error) {
+      res.status(400).json({ message: 'Failed to mark attendance' });
+    }
+  });
+
+  // Marcar falta de um estudante
+  app.post("/api/courses/:courseId/students/:studentId/absence", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const studentId = parseInt(req.params.studentId);
+      
+      await storage.markAbsence(studentId, courseId);
+      res.json({ message: 'Absence marked successfully' });
+    } catch (error) {
+      res.status(400).json({ message: 'Failed to mark absence' });
+    }
+  });
+
   // Remover estudante do curso
   app.delete("/api/courses/:courseId/students/:studentId", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
     try {
