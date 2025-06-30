@@ -24,6 +24,7 @@ export interface IStorage {
   getCourseEnrollments(courseId: number): Promise<CourseEnrollment[]>;
   updateProgress(userId: number, courseId: number, progress: number): Promise<void>;
   setStudentGrade(studentId: number, courseId: number, grade: number): Promise<void>;
+  removeStudentFromCourse(studentId: number, courseId: number): Promise<void>;
   getStudentsByRole(role: string): Promise<User[]>;
   
   // Notes methods
@@ -152,6 +153,12 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(courseEnrollments)
       .set({ grade })
+      .where(and(eq(courseEnrollments.userId, studentId), eq(courseEnrollments.courseId, courseId)));
+  }
+
+  async removeStudentFromCourse(studentId: number, courseId: number): Promise<void> {
+    await db
+      .delete(courseEnrollments)
       .where(and(eq(courseEnrollments.userId, studentId), eq(courseEnrollments.courseId, courseId)));
   }
 

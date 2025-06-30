@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Book, User, Calendar, Users, Play, CheckCircle, UserPlus, GraduationCap, FileText, Plus } from 'lucide-react';
+import { Book, User, Calendar, Users, Play, CheckCircle, UserPlus, GraduationCap, FileText, Plus, Trash2 } from 'lucide-react';
 import { Course, CourseEnrollment, Note } from '@shared/schema';
 
 export default function CourseDetail() {
@@ -94,6 +94,28 @@ export default function CourseDetail() {
     onError: (error) => {
       toast({
         title: 'Erro na matrícula',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const removeStudentMutation = useMutation({
+    mutationFn: async (studentId: number) => {
+      return apiRequest(`/api/courses/${id}/students/${studentId}`, {
+        method: 'DELETE'
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Estudante removido',
+        description: 'Estudante foi removido do curso com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao remover estudante',
         description: error.message,
         variant: 'destructive',
       });
@@ -558,6 +580,23 @@ export default function CourseDetail() {
                                           )}
                                         </div>
                                       </div>
+                                    </div>
+                                    
+                                    {/* Botão de remover estudante */}
+                                    <div className="ml-4">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          if (confirm(`Tem certeza que deseja remover ${enrollment.user ? `${enrollment.user.firstName} ${enrollment.user.lastName}` : `Estudante #${enrollment.userId}`} do curso?`)) {
+                                            removeStudentMutation.mutate(enrollment.userId);
+                                          }
+                                        }}
+                                        disabled={removeStudentMutation.isPending}
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
                                     </div>
                                   </div>
                                 </div>

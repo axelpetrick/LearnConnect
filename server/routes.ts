@@ -345,6 +345,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Remover estudante do curso
+  app.delete("/api/courses/:courseId/students/:studentId", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const studentId = parseInt(req.params.studentId);
+      
+      await storage.removeStudentFromCourse(studentId, courseId);
+      res.json({ message: 'Student removed from course successfully' });
+    } catch (error) {
+      console.error('Error removing student from course:', error);
+      res.status(400).json({ message: 'Failed to remove student from course' });
+    }
+  });
+
   app.get("/api/courses/my/enrollments", authenticateToken, async (req: any, res) => {
     try {
       const enrollments = await storage.getUserEnrollments(req.user.id);
