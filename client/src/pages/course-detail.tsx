@@ -107,6 +107,7 @@ export default function CourseDetail() {
       },
     }).then(res => res.json()),
     enabled: !!(user?.role === 'student' && user?.id),
+    refetchOnMount: true,
   });
 
   const myEnrollment = Array.isArray(userEnrollments) 
@@ -577,6 +578,12 @@ export default function CourseDetail() {
                               <div className="flex flex-wrap gap-2">
                                 {enrolledStudents.slice(0, 6).map((enrollment, index) => {
                                   const isCurrentUser = enrollment.userId === user?.id;
+                                  const studentName = isCurrentUser 
+                                    ? 'Você' 
+                                    : enrollment.user 
+                                      ? `${enrollment.user.firstName || enrollment.user.username}` 
+                                      : `Estudante ${enrollment.userId}`;
+                                  
                                   return (
                                     <Badge 
                                       key={index} 
@@ -584,7 +591,7 @@ export default function CourseDetail() {
                                       className="flex items-center gap-1"
                                     >
                                       <User className="w-3 h-3" />
-                                      {isCurrentUser ? 'Você' : `Estudante ${enrollment.userId}`}
+                                      {studentName}
                                       {enrollment.progress > 0 && (
                                         <span className="text-xs ml-1">({enrollment.progress}%)</span>
                                       )}
@@ -603,6 +610,19 @@ export default function CourseDetail() {
                                 </div>
                                 <div>
                                   <span className="font-medium">Ativos:</span> {enrolledStudents.filter(e => (e.progress || 0) > 0).length}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Média da turma:</span> {
+                                    (() => {
+                                      const studentsWithGrades = enrolledStudents.filter(e => e.grade && e.grade > 0);
+                                      if (studentsWithGrades.length === 0) return '--';
+                                      const average = studentsWithGrades.reduce((acc, e) => acc + (e.grade || 0), 0) / studentsWithGrades.length;
+                                      return Math.round(average);
+                                    })()
+                                  }
+                                </div>
+                                <div>
+                                  <span className="font-medium">Avaliados:</span> {enrolledStudents.filter(e => e.grade && e.grade > 0).length}
                                 </div>
                               </div>
                             </div>
