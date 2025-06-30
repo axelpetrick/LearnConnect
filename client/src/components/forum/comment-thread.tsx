@@ -10,15 +10,26 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { ChevronUp, ChevronDown, Reply, Calendar, Edit, Trash2, MoreVertical } from 'lucide-react';
-import { ForumComment } from '@shared/schema';
+import { ForumComment, User } from '@shared/schema';
+
+// Tipo extendido para comentários com dados do autor
+interface CommentWithAuthor extends Omit<ForumComment, 'votes'> {
+  author?: {
+    id: number;
+    username: string;
+    email: string;
+    role: string;
+  };
+  votes?: number | null;
+}
 
 interface CommentThreadProps {
   topicId: number;
-  comments: ForumComment[];
+  comments: CommentWithAuthor[];
 }
 
 interface CommentItemProps {
-  comment: ForumComment;
+  comment: CommentWithAuthor;
   topicId: number;
   level?: number;
 }
@@ -32,6 +43,21 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Função para exibir o nome do autor considerando comentários anônimos
+  const getDisplayName = () => {
+    if (!comment.isAnonymous) {
+      return comment.author?.username || 'Usuário Desconhecido';
+    }
+    
+    // Se é anônimo e o usuário é admin, mostrar "Anônimo (nome_real)"
+    if (user?.role === 'admin') {
+      return `Anônimo (${comment.author?.username || 'Usuário Desconhecido'})`;
+    }
+    
+    // Se é anônimo e não é admin, mostrar apenas "Anônimo"
+    return 'Anônimo';
+  };
 
   const voteMutation = useMutation({
     mutationFn: async ({ voteType }: { voteType: number }) => {
@@ -155,7 +181,7 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
             <div className="flex-1">
               <div className="flex items-center space-x-2">
                 <span className="font-medium text-sm">
-                  {comment.author?.username || 'Usuário Desconhecido'}
+                  {getDisplayName()}
                 </span>
                 <div className="flex items-center text-xs text-gray-500">
                   <Calendar className="w-3 h-3 mr-1" />

@@ -279,10 +279,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getForumComments(topicId: number): Promise<any[]> {
-    // Buscar comentários ordenados por data de criação (mais recentes primeiro)
+    // Buscar comentários com dados do autor, ordenados por data de criação (mais recentes primeiro)
     const comments = await db
-      .select()
+      .select({
+        id: forumComments.id,
+        content: forumComments.content,
+        createdAt: forumComments.createdAt,
+        updatedAt: forumComments.updatedAt,
+        authorId: forumComments.authorId,
+        topicId: forumComments.topicId,
+        parentId: forumComments.parentId,
+        isAnonymous: forumComments.isAnonymous,
+        author: {
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          role: users.role
+        }
+      })
       .from(forumComments)
+      .leftJoin(users, eq(forumComments.authorId, users.id))
       .where(eq(forumComments.topicId, topicId))
       .orderBy(desc(forumComments.createdAt));
     
