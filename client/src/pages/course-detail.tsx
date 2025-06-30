@@ -84,7 +84,7 @@ export default function CourseDetail() {
   });
 
   // Buscar anotações concluídas pelo estudante
-  const { data: completedNotes = [] } = useQuery<any[]>({
+  const { data: completedNotes = [], isLoading: completedNotesLoading } = useQuery<any[]>({
     queryKey: ['/api/notes/completed', id],
     queryFn: () => fetch(`/api/notes/completed/${id}`, {
       headers: {
@@ -92,7 +92,9 @@ export default function CourseDetail() {
         'Content-Type': 'application/json',
       },
     }).then(res => res.json()),
-    enabled: !!(id && user?.role === 'student'),
+    enabled: !!(id && user?.role === 'student' && user?.id),
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   // Buscar dados da matrícula atual do estudante
@@ -199,9 +201,15 @@ export default function CourseDetail() {
         title: 'Anotação marcada como concluída',
         description: 'Seu progresso foi atualizado.',
       });
+      // Invalidar e refazer as queries para garantir dados atualizados
       queryClient.invalidateQueries({ queryKey: ['/api/notes/completed', id] });
       queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
       queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+      
+      // Forçar refetch imediato para atualizar progresso
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/courses', id, 'students'] });
+      }, 100);
     },
     onError: (error) => {
       toast({
@@ -222,9 +230,15 @@ export default function CourseDetail() {
         title: 'Anotação desmarcada',
         description: 'Seu progresso foi atualizado.',
       });
+      // Invalidar e refazer as queries para garantir dados atualizados
       queryClient.invalidateQueries({ queryKey: ['/api/notes/completed', id] });
       queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
       queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+      
+      // Forçar refetch imediato para atualizar progresso
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/courses', id, 'students'] });
+      }, 100);
     },
     onError: (error) => {
       toast({
