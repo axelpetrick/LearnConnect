@@ -200,15 +200,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Listar estudantes (para professores matricularem)
   app.get("/api/users/students", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
     try {
-      console.log('Fetching students...');
-      // Busca direta no banco usando SQL simplificado
-      const allUsers = await storage.getStudentsByRole('student');
-      console.log('Students found:', allUsers.length);
-      const studentsWithoutPassword = allUsers.map((student: any) => ({ ...student, password: undefined }));
-      res.json(studentsWithoutPassword);
+      console.log('Fetching students - user:', req.user?.username, 'role:', req.user?.role);
+      
+      // Query SQL direta e simples
+      const result = await db.select().from(users).where(eq(users.role, 'student'));
+      
+      // Mapear para o formato correto removendo password
+      const studentsFormatted = result.map(student => ({
+        id: student.id,
+        username: student.username,
+        email: student.email,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        role: student.role
+      }));
+      
+      console.log('Students found:', studentsFormatted.length);
+      
+      res.json(studentsFormatted);
     } catch (error) {
       console.error('Error fetching students:', error);
-      res.status(500).json({ message: 'Failed to get students', error: String(error) });
+      res.status(500).json({ message: 'Failed to get students - NEW ERROR', error: String(error) });
     }
   });
 
