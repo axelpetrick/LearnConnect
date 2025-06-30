@@ -1,6 +1,6 @@
 import { users, courses, courseEnrollments, notes, forumTopics, forumComments, commentVotes, noteCompletions, type User, type InsertUser, type Course, type InsertCourse, type CourseEnrollment, type Note, type InsertNote, type ForumTopic, type InsertForumTopic, type ForumComment, type InsertForumComment, type CommentVote } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -219,7 +219,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getForumTopics(): Promise<ForumTopic[]> {
-    return await db.select().from(forumTopics);
+    return await db.select().from(forumTopics).orderBy(desc(forumTopics.createdAt));
   }
 
   async getForumTopic(id: number): Promise<ForumTopic | undefined> {
@@ -260,8 +260,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getForumComments(topicId: number): Promise<ForumComment[]> {
-    // Buscar comentários
-    const comments = await db.select().from(forumComments).where(eq(forumComments.topicId, topicId));
+    // Buscar comentários ordenados por data de criação (mais recentes primeiro)
+    const comments = await db
+      .select()
+      .from(forumComments)
+      .where(eq(forumComments.topicId, topicId))
+      .orderBy(desc(forumComments.createdAt));
     
     // Para cada comentário, calcular os votos
     const commentsWithVotes = await Promise.all(
