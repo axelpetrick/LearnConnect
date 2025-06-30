@@ -655,7 +655,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...comment,
             author: {
               ...comment.author,
-              username: isAdmin ? `Anônimo (${comment.author.username})` : 'Anônimo'
+              username: isAdmin ? `Anônimo (${comment.author.firstName || comment.author.username})` : 'Anônimo'
             }
           };
         }

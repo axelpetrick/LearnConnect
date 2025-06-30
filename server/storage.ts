@@ -345,6 +345,8 @@ export class DatabaseStorage implements IStorage {
         author: {
           id: users.id,
           username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
           email: users.email,
           role: users.role
         }
