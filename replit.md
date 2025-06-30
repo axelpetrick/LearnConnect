@@ -159,6 +159,13 @@ Changelog:
   * Added class average grade calculation based on student grades
   * Removed enrollment buttons and "Começar Agora" section for cleaner interface
   * Fixed student names display in "Colegas de Turma" section
+- June 30, 2025: Anonymous comments security and real name display system
+  * Implemented role-based anonymous comment viewing with data protection
+  * Students see only "Anônimo" for anonymous comments (privacy protection)
+  * Administrators see "Anônimo (real_name)" to identify authors for moderation
+  * Changed default display from usernames to real names (firstName) for all users
+  * Added cache separation by user role to prevent data leakage between user types
+  * Enhanced forum security with proper access control for sensitive information
 ```
 
 ## User Preferences
