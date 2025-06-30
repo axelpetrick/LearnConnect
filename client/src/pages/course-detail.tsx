@@ -439,22 +439,10 @@ export default function CourseDetail() {
               </div>
               
               <div className="mt-6 sm:mt-0 sm:ml-6">
-                {user && ['tutor', 'admin'].includes(user.role) && (
-                  <div className="flex items-center gap-3">
-                    <Button
-                      onClick={openEditCourseModal}
-                      variant="outline"
-                      size="sm"
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Editar Curso
-                    </Button>
-                    {isAuthor && (
-                      <div className="flex items-center space-x-2 text-sm text-gray-500">
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                        <span>Autor</span>
-                      </div>
-                    )}
+                {isAuthor && (
+                  <div className="flex items-center space-x-2 text-sm text-gray-500">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>Autor deste curso</span>
                   </div>
                 )}
               </div>
@@ -505,7 +493,19 @@ export default function CourseDetail() {
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Informações do Curso</CardTitle>
+                    <CardTitle className="flex items-center justify-between">
+                      Informações do Curso
+                      {user && ['tutor', 'admin'].includes(user.role) && (
+                        <Button
+                          onClick={openEditCourseModal}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Editar
+                        </Button>
+                      )}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Status para estudantes ou status de publicação para professores */}
@@ -1416,7 +1416,7 @@ export default function CourseDetail() {
             <div>
               <Label htmlFor="edit-author">Professor Responsável</Label>
               <Select
-                value={editCourseData.authorId.toString()}
+                value={editCourseData.authorId ? editCourseData.authorId.toString() : ''}
                 onValueChange={(value) => setEditCourseData(prev => ({ ...prev, authorId: parseInt(value) }))}
               >
                 <SelectTrigger>
