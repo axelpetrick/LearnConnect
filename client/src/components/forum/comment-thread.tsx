@@ -26,6 +26,7 @@ interface CommentItemProps {
 function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyContent, setReplyContent] = useState('');
+  const [isReplyAnonymous, setIsReplyAnonymous] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const { user } = useAuth();
@@ -49,15 +50,17 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
   });
 
   const replyMutation = useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async ({ content, isAnonymous }: { content: string; isAnonymous: boolean }) => {
       return apiRequest('POST', '/api/forum/comments', {
         content,
         topicId,
         parentId: comment.id,
+        isAnonymous,
       });
     },
     onSuccess: () => {
       setReplyContent('');
+      setIsReplyAnonymous(false);
       setShowReplyForm(false);
       queryClient.invalidateQueries({ queryKey: ['/api/forum/topics', topicId.toString(), 'comments'] });
       toast({
@@ -121,7 +124,7 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
 
   const handleReply = () => {
     if (replyContent.trim()) {
-      replyMutation.mutate(replyContent);
+      replyMutation.mutate({ content: replyContent, isAnonymous: isReplyAnonymous });
     }
   };
 
@@ -269,21 +272,33 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
                 onChange={(e) => setReplyContent(e.target.value)}
                 rows={3}
               />
-              <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowReplyForm(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleReply}
-                  disabled={replyMutation.isPending || !replyContent.trim()}
-                >
-                  {replyMutation.isPending ? 'Enviando...' : 'Responder'}
-                </Button>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`anonymous-reply-${comment.id}`}
+                    checked={isReplyAnonymous}
+                    onCheckedChange={(checked) => setIsReplyAnonymous(checked === true)}
+                  />
+                  <label htmlFor={`anonymous-reply-${comment.id}`} className="text-sm text-gray-700">
+                    Responder anonimamente
+                  </label>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowReplyForm(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleReply}
+                    disabled={replyMutation.isPending || !replyContent.trim()}
+                  >
+                    {replyMutation.isPending ? 'Enviando...' : 'Responder'}
+                  </Button>
+                </div>
               </div>
             </div>
           )}
