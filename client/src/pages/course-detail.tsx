@@ -46,13 +46,24 @@ export default function CourseDetail() {
   const queryClient = useQueryClient();
 
   const { data: course, isLoading, error } = useQuery<Course>({
-    queryKey: ['/api/courses', id],
+    queryKey: [`/api/courses/${id}`],
+    queryFn: async () => {
+      const response = await fetch(`/api/courses/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch course');
+      return response.json();
+    },
     enabled: !!id,
   });
 
   // Buscar informações do autor do curso
   const { data: courseAuthor, isLoading: authorLoading, error: authorError } = useQuery<any>({
-    queryKey: ['/api/users', course?.authorId],
+    queryKey: [`/api/users/${course?.authorId}`],
+    queryFn: async () => {
+      if (!course?.authorId) return null;
+      const response = await fetch(`/api/users/${course.authorId}`);
+      if (!response.ok) throw new Error('Failed to fetch author');
+      return response.json();
+    },
     enabled: !!course?.authorId,
   });
 
