@@ -260,7 +260,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getForumComments(topicId: number): Promise<ForumComment[]> {
-    return await db.select().from(forumComments).where(eq(forumComments.topicId, topicId));
+    // Buscar comentários
+    const comments = await db.select().from(forumComments).where(eq(forumComments.topicId, topicId));
+    
+    // Para cada comentário, calcular os votos
+    const commentsWithVotes = await Promise.all(
+      comments.map(async (comment) => {
+        const votes = await db
+          .select({ voteType: commentVotes.voteType })
+          .from(commentVotes)
+          .where(eq(commentVotes.commentId, comment.id));
+        
+        const totalVotes = votes.reduce((sum, vote) => sum + vote.voteType, 0);
+        
+        return {
+          ...comment,
+          votes: totalVotes
+        };
+      })
+    );
+    
+    return commentsWithVotes;
   }
 
   async createForumComment(insertComment: InsertForumComment): Promise<ForumComment> {

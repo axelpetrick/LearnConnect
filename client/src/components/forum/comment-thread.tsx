@@ -33,7 +33,7 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
       return apiRequest('POST', `/api/forum/comments/${comment.id}/vote`, { voteType });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/forum/topics', topicId, 'comments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/forum/topics', topicId.toString(), 'comments'] });
     },
     onError: (error) => {
       toast({
@@ -55,7 +55,7 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
     onSuccess: () => {
       setReplyContent('');
       setShowReplyForm(false);
-      queryClient.invalidateQueries({ queryKey: ['/api/forum/topics', topicId, 'comments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/forum/topics', topicId.toString(), 'comments'] });
       toast({
         title: 'Resposta adicionada!',
         description: 'Sua resposta foi publicada com sucesso.',
@@ -189,7 +189,7 @@ export function CommentThread({ topicId, comments }: CommentThreadProps) {
     },
     onSuccess: () => {
       setNewComment('');
-      queryClient.invalidateQueries({ queryKey: ['/api/forum/topics', topicId, 'comments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/forum/topics', topicId.toString(), 'comments'] });
       toast({
         title: 'Comentário adicionado!',
         description: 'Seu comentário foi publicado com sucesso.',
