@@ -5,14 +5,17 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CommentThread } from '@/components/forum/comment-thread';
-import { MessageSquare, User, Calendar, Eye, Pin } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { MessageSquare, User, Calendar, Eye, Pin, Edit, Trash2 } from 'lucide-react';
 import { ForumTopic, ForumComment } from '@shared/schema';
 
 export default function ForumTopicPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { id } = useParams();
+  const { user } = useAuth();
 
   const { data: topic, isLoading: topicLoading, error: topicError } = useQuery<ForumTopic>({
     queryKey: [`/api/forum/topics/${id}`],
@@ -95,6 +98,28 @@ export default function ForumTopicPage() {
                         </Badge>
                       )}
                       <CardTitle className="text-2xl">{topic.title}</CardTitle>
+                      
+                      {/* Edit/Delete buttons for topic author or admin */}
+                      {user && (user.id === topic.authorId || user.role === 'admin') && (
+                        <div className="flex items-center space-x-2 ml-auto">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center space-x-1"
+                          >
+                            <Edit className="w-4 h-4" />
+                            <span>Editar</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center space-x-1 text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Excluir</span>
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex items-center text-sm text-gray-500 space-x-6 mb-4">

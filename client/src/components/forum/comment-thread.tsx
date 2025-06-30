@@ -160,9 +160,39 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="prose prose-sm max-w-none mb-4">
-            <p>{comment.content}</p>
-          </div>
+          {isEditing ? (
+            <div className="mb-4">
+              <Textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                placeholder="Editar comentário..."
+                className="mb-2"
+              />
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={handleEdit}
+                  disabled={editMutation.isPending}
+                  size="sm"
+                >
+                  {editMutation.isPending ? 'Salvando...' : 'Salvar'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditContent(comment.content);
+                  }}
+                  size="sm"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="prose prose-sm max-w-none mb-4">
+              <p>{comment.content}</p>
+            </div>
+          )}
           
           <div className="flex items-center space-x-4">
             {/* Vote buttons */}
@@ -199,6 +229,31 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
                 <Reply className="w-4 h-4" />
                 <span>Responder</span>
               </Button>
+            )}
+
+            {/* Edit/Delete buttons - only for author or admin */}
+            {canEdit && (
+              <div className="flex items-center space-x-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="flex items-center space-x-1"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>Editar</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDelete}
+                  disabled={deleteMutation.isPending}
+                  className="flex items-center space-x-1 text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Excluir</span>
+                </Button>
+              </div>
             )}
           </div>
 

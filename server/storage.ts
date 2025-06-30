@@ -42,10 +42,14 @@ export interface IStorage {
   getForumTopicsByCourse(courseId: number): Promise<ForumTopic[]>;
   createForumTopic(topic: InsertForumTopic): Promise<ForumTopic>;
   updateForumTopic(id: number, topic: Partial<InsertForumTopic>): Promise<ForumTopic | undefined>;
+  deleteForumTopic(id: number): Promise<boolean>;
   incrementTopicViews(id: number): Promise<void>;
   
-  getForumComments(topicId: number): Promise<ForumComment[]>;
+  getForumComments(topicId: number): Promise<any[]>;
+  getForumComment(id: number): Promise<ForumComment | undefined>;
   createForumComment(comment: InsertForumComment): Promise<ForumComment>;
+  updateForumComment(id: number, comment: Partial<InsertForumComment>): Promise<ForumComment | undefined>;
+  deleteForumComment(id: number): Promise<boolean>;
   voteOnComment(userId: number, commentId: number, voteType: number): Promise<void>;
   
   // Analytics methods
@@ -248,6 +252,21 @@ export class DatabaseStorage implements IStorage {
     return topic || undefined;
   }
 
+  async deleteForumTopic(id: number): Promise<boolean> {
+    // Primeiro, deletar todos os votos dos comentários do tópico
+    const topicComments = await db.select({ id: forumComments.id }).from(forumComments).where(eq(forumComments.topicId, id));
+    for (const comment of topicComments) {
+      await db.delete(commentVotes).where(eq(commentVotes.commentId, comment.id));
+    }
+    
+    // Depois, deletar todos os comentários do tópico
+    await db.delete(forumComments).where(eq(forumComments.topicId, id));
+    
+    // Finalmente, deletar o tópico
+    const result = await db.delete(forumTopics).where(eq(forumTopics.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
   async incrementTopicViews(id: number): Promise<void> {
     // Buscar o tópico atual
     const [topic] = await db.select().from(forumTopics).where(eq(forumTopics.id, id));
@@ -259,7 +278,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getForumComments(topicId: number): Promise<ForumComment[]> {
+  async getForumComments(topicId: number): Promise<any[]> {
     // Buscar comentários ordenados por data de criação (mais recentes primeiro)
     const comments = await db
       .select()
@@ -285,6 +304,29 @@ export class DatabaseStorage implements IStorage {
     );
     
     return commentsWithVotes;
+  }
+
+  async getForumComment(id: number): Promise<ForumComment | undefined> {
+    const [comment] = await db.select().from(forumComments).where(eq(forumComments.id, id));
+    return comment || undefined;
+  }
+
+  async updateForumComment(id: number, updateData: Partial<InsertForumComment>): Promise<ForumComment | undefined> {
+    const [updatedComment] = await db
+      .update(forumComments)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(forumComments.id, id))
+      .returning();
+    return updatedComment || undefined;
+  }
+
+  async deleteForumComment(id: number): Promise<boolean> {
+    // Primeiro, deletar todos os votos associados ao comentário
+    await db.delete(commentVotes).where(eq(commentVotes.commentId, id));
+    
+    // Depois, deletar o comentário
+    const result = await db.delete(forumComments).where(eq(forumComments.id, id));
+    return (result.rowCount || 0) > 0;
   }
 
   async createForumComment(insertComment: InsertForumComment): Promise<ForumComment> {

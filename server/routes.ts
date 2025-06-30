@@ -702,7 +702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Not authorized to delete this topic' });
       }
 
-      // Deletar tópico (implementar na storage se necessário)
+      await storage.deleteForumTopic(id);
       res.json({ message: 'Topic deleted successfully' });
     } catch (error) {
       res.status(400).json({ message: 'Failed to delete topic' });
@@ -713,9 +713,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/forum/comments/:id", authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      // Implementar getForumComment se necessário
+      const comment = await storage.getForumComment(id);
       
-      res.json({ message: 'Comment updated successfully' });
+      if (!comment) {
+        return res.status(404).json({ message: 'Comment not found' });
+      }
+      
+      // Apenas autor ou admin pode editar
+      if (comment.authorId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Not authorized to edit this comment' });
+      }
+
+      const updatedComment = await storage.updateForumComment(id, req.body);
+      res.json(updatedComment);
     } catch (error) {
       res.status(400).json({ message: 'Failed to update comment' });
     }
@@ -725,8 +735,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/forum/comments/:id", authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      // Implementar deleteForumComment se necessário
+      const comment = await storage.getForumComment(id);
       
+      if (!comment) {
+        return res.status(404).json({ message: 'Comment not found' });
+      }
+      
+      // Apenas autor ou admin pode excluir
+      if (comment.authorId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Not authorized to delete this comment' });
+      }
+
+      await storage.deleteForumComment(id);
       res.json({ message: 'Comment deleted successfully' });
     } catch (error) {
       res.status(400).json({ message: 'Failed to delete comment' });
