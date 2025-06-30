@@ -468,10 +468,15 @@ export default function CourseDetail() {
                     <CardTitle>Sobre o Curso</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Nome do curso */}
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">{course?.title}</h3>
+                    </div>
+                    
                     {/* Descrição do curso */}
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">Descrição</h4>
-                      <p className="text-gray-700">{course.description}</p>
+                      <p className="text-gray-700">{course?.description}</p>
                     </div>
                     
                     {/* Conteúdo detalhado */}
