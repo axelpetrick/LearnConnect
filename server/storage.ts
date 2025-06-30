@@ -1,4 +1,4 @@
-import { users, courses, courseEnrollments, notes, forumTopics, forumComments, commentVotes, noteCompletions, type User, type InsertUser, type Course, type InsertCourse, type CourseEnrollment, type Note, type InsertNote, type ForumTopic, type InsertForumTopic, type ForumComment, type InsertForumComment, type CommentVote } from "@shared/schema";
+import { users, courses, courseEnrollments, notes, forumTopics, forumComments, commentVotes, topicVotes, noteCompletions, type User, type InsertUser, type Course, type InsertCourse, type CourseEnrollment, type Note, type InsertNote, type ForumTopic, type InsertForumTopic, type ForumComment, type InsertForumComment, type CommentVote, type TopicVote } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
 
@@ -44,6 +44,7 @@ export interface IStorage {
   updateForumTopic(id: number, topic: Partial<InsertForumTopic>): Promise<ForumTopic | undefined>;
   deleteForumTopic(id: number): Promise<boolean>;
   incrementTopicViews(id: number): Promise<void>;
+  voteOnTopic(userId: number, topicId: number, voteType: number): Promise<void>;
   
   getForumComments(topicId: number): Promise<any[]>;
   getForumComment(id: number): Promise<ForumComment | undefined>;
@@ -222,8 +223,59 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount || 0) > 0;
   }
 
-  async getForumTopics(): Promise<ForumTopic[]> {
-    return await db.select().from(forumTopics).orderBy(desc(forumTopics.createdAt));
+  async getForumTopics(): Promise<any[]> {
+    const topics = await db
+      .select({
+        id: forumTopics.id,
+        title: forumTopics.title,
+        content: forumTopics.content,
+        createdAt: forumTopics.createdAt,
+        updatedAt: forumTopics.updatedAt,
+        authorId: forumTopics.authorId,
+        tags: forumTopics.tags,
+        courseId: forumTopics.courseId,
+        isPinned: forumTopics.isPinned,
+        views: forumTopics.views,
+        author: {
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          role: users.role
+        }
+      })
+      .from(forumTopics)
+      .leftJoin(users, eq(forumTopics.authorId, users.id))
+      .orderBy(desc(forumTopics.createdAt));
+
+    // Para cada tópico, calcular respostas e votos
+    const topicsWithStats = await Promise.all(
+      topics.map(async (topic) => {
+        // Contar respostas
+        const commentsCount = await db
+          .select({ count: forumComments.id })
+          .from(forumComments)
+          .where(eq(forumComments.topicId, topic.id));
+
+        // Calcular votos
+        const votes = await db
+          .select({ voteType: topicVotes.voteType })
+          .from(topicVotes)
+          .where(eq(topicVotes.topicId, topic.id));
+        
+        const likes = votes.filter(v => v.voteType === 1).length;
+        const dislikes = votes.filter(v => v.voteType === -1).length;
+        
+        return {
+          ...topic,
+          repliesCount: commentsCount.length,
+          likes,
+          dislikes,
+          totalVotes: likes - dislikes
+        };
+      })
+    );
+
+    return topicsWithStats;
   }
 
   async getForumTopic(id: number): Promise<ForumTopic | undefined> {
@@ -435,6 +487,30 @@ export class DatabaseStorage implements IStorage {
       ));
     
     return result;
+  }
+
+  async voteOnTopic(userId: number, topicId: number, voteType: number): Promise<void> {
+    // Verificar se o usuário já votou neste tópico
+    const [existingVote] = await db
+      .select()
+      .from(topicVotes)
+      .where(and(eq(topicVotes.userId, userId), eq(topicVotes.topicId, topicId)));
+
+    if (existingVote) {
+      // Se já existe um voto, atualizar
+      await db
+        .update(topicVotes)
+        .set({ voteType })
+        .where(eq(topicVotes.id, existingVote.id));
+    } else {
+      // Se não existe, criar novo voto
+      await db.insert(topicVotes).values({
+        userId,
+        topicId,
+        voteType,
+        createdAt: new Date(),
+      });
+    }
   }
 }
 

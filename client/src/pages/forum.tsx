@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, Search, MessageSquare, User, Calendar, Eye, MessageCircle } from 'lucide-react';
+import { Plus, Search, MessageSquare, User, Calendar, Eye, MessageCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { ForumTopic, InsertForumTopic } from '@shared/schema';
 
 export default function Forum() {
@@ -61,6 +61,38 @@ export default function Forum() {
       });
     },
   });
+
+  const voteTopicMutation = useMutation({
+    mutationFn: async ({ topicId, voteType }: { topicId: number; voteType: number }) => {
+      return apiRequest('POST', `/api/forum/topics/${topicId}/vote`, { voteType });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/forum/topics'] });
+      toast({
+        title: "Voto registrado!",
+        description: "Seu voto foi contabilizado com sucesso.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao registrar voto. Tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleTopicVote = (topicId: number, voteType: number) => {
+    if (!user) {
+      toast({
+        title: "Login necessário",
+        description: "Você precisa estar logado para votar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    voteTopicMutation.mutate({ topicId, voteType });
+  };
 
   const handleCreateTopic = (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,7 +290,7 @@ export default function Forum() {
                       <div className="flex items-center text-sm text-gray-500 space-x-4">
                         <div className="flex items-center">
                           <User className="w-4 h-4 mr-1" />
-                          <span>Autor</span>
+                          <span>{topic.author?.username || 'Autor'}</span>
                         </div>
                         <div className="flex items-center">
                           <Calendar className="w-4 h-4 mr-1" />
@@ -270,8 +302,34 @@ export default function Forum() {
                         </div>
                         <div className="flex items-center">
                           <MessageCircle className="w-4 h-4 mr-1" />
-                          <span>0 respostas</span>
+                          <span>{topic.repliesCount || 0} respostas</span>
                         </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="flex items-center space-x-1 text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTopicVote(topic.id, 1);
+                          }}
+                        >
+                          <ThumbsUp className="w-4 h-4" />
+                          <span>{topic.likes || 0}</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="flex items-center space-x-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTopicVote(topic.id, -1);
+                          }}
+                        >
+                          <ThumbsDown className="w-4 h-4" />
+                          <span>{topic.dislikes || 0}</span>
+                        </Button>
                       </div>
                     </div>
                     {topic.tags && topic.tags.length > 0 && (

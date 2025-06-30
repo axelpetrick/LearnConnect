@@ -712,6 +712,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/forum/topics/:id/vote", authenticateToken, async (req: any, res) => {
+    try {
+      const topicId = parseInt(req.params.id);
+      const { voteType } = req.body; // 1 for like, -1 for dislike
+      
+      await storage.voteOnTopic(req.user.id, topicId, voteType);
+      res.json({ message: 'Vote recorded' });
+    } catch (error) {
+      res.status(400).json({ message: 'Failed to vote on topic' });
+    }
+  });
+
   // Editar tópico do fórum - apenas autor ou admin
   app.put("/api/forum/topics/:id", authenticateToken, async (req: any, res) => {
     try {

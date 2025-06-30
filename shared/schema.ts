@@ -83,6 +83,14 @@ export const commentVotes = pgTable("comment_votes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const topicVotes = pgTable("topic_votes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  topicId: integer("topic_id").notNull().references(() => forumTopics.id),
+  voteType: integer("vote_type").notNull(), // 1 for like, -1 for dislike
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -152,5 +160,6 @@ export type InsertForumTopic = z.infer<typeof insertForumTopicSchema>;
 export type ForumComment = typeof forumComments.$inferSelect;
 export type InsertForumComment = z.infer<typeof insertForumCommentSchema>;
 export type CommentVote = typeof commentVotes.$inferSelect;
+export type TopicVote = typeof topicVotes.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type LoginData = z.infer<typeof loginSchema>;
