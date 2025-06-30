@@ -1,4 +1,4 @@
-import { users, courses, courseEnrollments, notes, forumTopics, forumComments, commentVotes, type User, type InsertUser, type Course, type InsertCourse, type CourseEnrollment, type Note, type InsertNote, type ForumTopic, type InsertForumTopic, type ForumComment, type InsertForumComment, type CommentVote } from "@shared/schema";
+import { users, courses, courseEnrollments, notes, forumTopics, forumComments, commentVotes, noteCompletions, type User, type InsertUser, type Course, type InsertCourse, type CourseEnrollment, type Note, type InsertNote, type ForumTopic, type InsertForumTopic, type ForumComment, type InsertForumComment, type CommentVote } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 
@@ -55,6 +55,11 @@ export interface IStorage {
     notesCreated: number;
     forumPosts: number;
   }>;
+  
+  // Note completion methods
+  markNoteAsCompleted(userId: number, noteId: number): Promise<void>;
+  unmarkNoteAsCompleted(userId: number, noteId: number): Promise<void>;
+  getCompletedNotes(userId: number, courseId: number): Promise<any[]>;
 }
 
 // Implementação com banco de dados PostgreSQL
@@ -295,6 +300,43 @@ export class DatabaseStorage implements IStorage {
       notesCreated: userNotes.length,
       forumPosts: userTopics.length,
     };
+  }
+
+  async markNoteAsCompleted(userId: number, noteId: number): Promise<void> {
+    // Verifica se já existe a conclusão
+    const [existing] = await db
+      .select()
+      .from(noteCompletions)
+      .where(and(eq(noteCompletions.userId, userId), eq(noteCompletions.noteId, noteId)));
+    
+    if (!existing) {
+      await db.insert(noteCompletions).values({
+        userId,
+        noteId,
+      });
+    }
+  }
+
+  async unmarkNoteAsCompleted(userId: number, noteId: number): Promise<void> {
+    await db
+      .delete(noteCompletions)
+      .where(and(eq(noteCompletions.userId, userId), eq(noteCompletions.noteId, noteId)));
+  }
+
+  async getCompletedNotes(userId: number, courseId: number): Promise<any[]> {
+    const result = await db
+      .select({
+        noteId: noteCompletions.noteId,
+        completedAt: noteCompletions.completedAt,
+      })
+      .from(noteCompletions)
+      .innerJoin(notes, eq(notes.id, noteCompletions.noteId))
+      .where(and(
+        eq(noteCompletions.userId, userId),
+        eq(notes.courseId, courseId)
+      ));
+    
+    return result;
   }
 }
 

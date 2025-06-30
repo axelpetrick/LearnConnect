@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, numeric, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -92,6 +92,13 @@ export const notifications = pgTable("notifications", {
   relatedType: text("related_type"), // 'course', 'note', 'topic'
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const noteCompletions = pgTable("note_completions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  noteId: integer("note_id").notNull().references(() => notes.id),
+  completedAt: timestamp("completed_at").notNull().defaultNow(),
 });
 
 // Zod schemas

@@ -460,6 +460,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Marcar anotação como concluída pelo estudante
+  app.post("/api/notes/:noteId/complete", authenticateToken, async (req: any, res) => {
+    try {
+      const noteId = parseInt(req.params.noteId);
+      const userId = req.user.id;
+      
+      const note = await storage.getNote(noteId);
+      if (!note) {
+        return res.status(404).json({ message: 'Note not found' });
+      }
+      
+      // Verificar se o estudante está matriculado no curso da anotação
+      if (note.courseId) {
+        const enrollments = await storage.getUserEnrollments(userId);
+        const isEnrolled = enrollments.some(enrollment => enrollment.courseId === note.courseId);
+        
+        if (!isEnrolled) {
+          return res.status(403).json({ message: 'You must be enrolled in the course to complete notes' });
+        }
+      }
+      
+      await storage.markNoteAsCompleted(userId, noteId);
+      
+      // Calcular e atualizar progresso se a nota pertence a um curso
+      if (note.courseId) {
+        const courseNotes = await storage.getNotesByCourse(note.courseId);
+        const completedNotes = await storage.getCompletedNotes(userId, note.courseId);
+        const progress = Math.round((completedNotes.length / courseNotes.length) * 100);
+        
+        await storage.updateProgress(userId, note.courseId, progress);
+      }
+      
+      res.json({ message: 'Note marked as completed' });
+    } catch (error) {
+      console.error('Error completing note:', error);
+      res.status(400).json({ message: 'Failed to complete note' });
+    }
+  });
+
+  // Desmarcar anotação como concluída
+  app.delete("/api/notes/:noteId/complete", authenticateToken, async (req: any, res) => {
+    try {
+      const noteId = parseInt(req.params.noteId);
+      const userId = req.user.id;
+      
+      const note = await storage.getNote(noteId);
+      if (!note) {
+        return res.status(404).json({ message: 'Note not found' });
+      }
+      
+      await storage.unmarkNoteAsCompleted(userId, noteId);
+      
+      // Recalcular progresso se a nota pertence a um curso
+      if (note.courseId) {
+        const courseNotes = await storage.getNotesByCourse(note.courseId);
+        const completedNotes = await storage.getCompletedNotes(userId, note.courseId);
+        const progress = Math.round((completedNotes.length / courseNotes.length) * 100);
+        
+        await storage.updateProgress(userId, note.courseId, progress);
+      }
+      
+      res.json({ message: 'Note unmarked as completed' });
+    } catch (error) {
+      console.error('Error uncompleting note:', error);
+      res.status(400).json({ message: 'Failed to uncomplete note' });
+    }
+  });
+
+  // Obter anotações concluídas do estudante
+  app.get("/api/notes/completed/:courseId", authenticateToken, async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const userId = req.user.id;
+      
+      const completedNotes = await storage.getCompletedNotes(userId, courseId);
+      res.json(completedNotes);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to get completed notes' });
+    }
+  });
+
   // Forum routes
   app.get("/api/forum/topics", async (req, res) => {
     try {

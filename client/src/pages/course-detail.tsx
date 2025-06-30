@@ -83,6 +83,13 @@ export default function CourseDetail() {
     enabled: !!id,
   });
 
+  // Buscar anotações concluídas pelo estudante
+  const { data: completedNotes = [] } = useQuery<any[]>({
+    queryKey: ['/api/notes/completed', id],
+    queryFn: () => fetch(`/api/notes/completed/${id}`).then(res => res.json()),
+    enabled: !!(id && user?.role === 'student'),
+  });
+
   const enrollMutation = useMutation({
     mutationFn: async () => {
       return apiRequest('POST', `/api/courses/${id}/enroll`);
@@ -162,6 +169,50 @@ export default function CourseDetail() {
     onError: (error) => {
       toast({
         title: 'Erro ao excluir anotação',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Mutation para marcar anotação como concluída
+  const completeNoteMutation = useMutation({
+    mutationFn: async (noteId: number) => {
+      return apiRequest('POST', `/api/notes/${noteId}/complete`);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Anotação marcada como concluída',
+        description: 'Seu progresso foi atualizado.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/notes/completed', id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao marcar como concluída',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Mutation para desmarcar anotação como concluída
+  const uncompleteNoteMutation = useMutation({
+    mutationFn: async (noteId: number) => {
+      return apiRequest('DELETE', `/api/notes/${noteId}/complete`);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Anotação desmarcada',
+        description: 'Seu progresso foi atualizado.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/notes/completed', id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao desmarcar como concluída',
         description: error.message,
         variant: 'destructive',
       });
@@ -507,30 +558,62 @@ export default function CourseDetail() {
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          {courseNotes.map((note) => (
-                            <div key={note.id} className="p-4 border rounded-lg hover:bg-gray-50">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <h4 className="font-medium text-lg">{note.title}</h4>
-                                  <p className="text-gray-600 mt-2 line-clamp-3">
-                                    {note.content}
-                                  </p>
-                                  <div className="flex items-center justify-between mt-4">
-                                    <div className="flex gap-2">
-                                      {note.tags?.map((tag, index) => (
-                                        <Badge key={index} variant="outline" className="text-xs">
-                                          {tag}
-                                        </Badge>
-                                      ))}
+                          {courseNotes.map((note) => {
+                            const isCompleted = completedNotes.some(cn => cn.noteId === note.id);
+                            return (
+                              <div key={note.id} className="p-4 border rounded-lg hover:bg-gray-50">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <h4 className="font-medium text-lg">{note.title}</h4>
+                                      {user?.role === 'student' && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            if (isCompleted) {
+                                              uncompleteNoteMutation.mutate(note.id);
+                                            } else {
+                                              completeNoteMutation.mutate(note.id);
+                                            }
+                                          }}
+                                          disabled={completeNoteMutation.isPending || uncompleteNoteMutation.isPending}
+                                          className={`flex items-center gap-1 ${isCompleted ? 'text-green-600 hover:text-green-700' : 'text-gray-400 hover:text-gray-600'}`}
+                                        >
+                                          {isCompleted ? (
+                                            <>
+                                              <CheckCircle className="w-4 h-4" />
+                                              Concluído
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Circle className="w-4 h-4" />
+                                              Marcar como concluído
+                                            </>
+                                          )}
+                                        </Button>
+                                      )}
                                     </div>
-                                    <p className="text-xs text-gray-500">
-                                      {new Date(note.createdAt).toLocaleDateString('pt-BR')}
+                                    <p className="text-gray-600 mt-2 line-clamp-3">
+                                      {note.content}
                                     </p>
+                                    <div className="flex items-center justify-between mt-4">
+                                      <div className="flex gap-2">
+                                        {note.tags?.map((tag, index) => (
+                                          <Badge key={index} variant="outline" className="text-xs">
+                                            {tag}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                      <p className="text-xs text-gray-500">
+                                        {new Date(note.createdAt).toLocaleDateString('pt-BR')}
+                                      </p>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </CardContent>
