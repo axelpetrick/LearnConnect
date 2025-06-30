@@ -132,6 +132,13 @@ Changelog:
   * Fixed notes creation modal for tutors/admins
   * Added admin role option in user registration for testing
   * All modals now use proper apiRequest with authentication
+- June 30, 2025: Database persistence and advanced course management
+  * Migrated from MemStorage to PostgreSQL database for data persistence
+  * Implemented comprehensive course management system with student enrollment
+  * Added grade assignment functionality for professors/admins
+  * Enhanced course detail pages with role-based interfaces
+  * Fixed instructor information, enrollment counts, and date formatting
+  * Created initial admin user and sample data in database
 ```
 
 ## User Preferences
