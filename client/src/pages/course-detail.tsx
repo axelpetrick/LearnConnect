@@ -67,7 +67,7 @@ export default function CourseDetail() {
       );
       return enrollmentsWithUsers;
     },
-    enabled: !!(id && user && ['tutor', 'admin'].includes(user.role)),
+    enabled: !!(id && user),
   });
 
   // Buscar estudantes disponíveis (para matricular) - com tipagem correta

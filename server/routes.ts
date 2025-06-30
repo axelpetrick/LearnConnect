@@ -331,10 +331,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Ver estudantes matriculados
-  app.get("/api/courses/:id/students", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+  app.get("/api/courses/:id/students", authenticateToken, async (req: any, res) => {
     try {
       const courseId = parseInt(req.params.id);
       const enrollments = await storage.getCourseEnrollments(courseId);
+      
+      // Se for estudante, verificar se está matriculado no curso
+      if (req.user.role === 'student') {
+        const userEnrollments = await storage.getUserEnrollments(req.user.id);
+        const isEnrolled = userEnrollments.some(e => e.courseId === courseId);
+        
+        if (!isEnrolled) {
+          return res.status(403).json({ message: 'You must be enrolled to see classmates' });
+        }
+        
+        // Para estudantes, retornar apenas dados básicos dos colegas
+        const basicEnrollments = enrollments.map(e => ({
+          id: e.id,
+          userId: e.userId,
+          courseId: e.courseId,
+          progress: e.progress,
+          enrolledAt: e.enrolledAt,
+          // Omitir informações sensíveis como notas para outros estudantes
+          grade: e.userId === req.user.id ? e.grade : null
+        }));
+        
+        return res.json(basicEnrollments);
+      }
+      
+      // Para tutores/admins, retornar dados completos
       res.json(enrollments);
     } catch (error) {
       res.status(500).json({ message: 'Failed to get course students' });
