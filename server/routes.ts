@@ -7,6 +7,9 @@ import path from "path";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import { storage } from "./storage";
+import { db } from "./db";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { 
   loginSchema, insertUserSchema, insertCourseSchema, 
   insertNoteSchema, insertForumTopicSchema, insertForumCommentSchema 
@@ -198,13 +201,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/students", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
     try {
       console.log('Fetching students...');
-      const students = await storage.getStudentsByRole('student');
-      console.log('Students found:', students.length);
-      const studentsWithoutPassword = students.map(student => ({ ...student, password: undefined }));
+      // Busca direta no banco usando SQL simplificado
+      const allUsers = await storage.getStudentsByRole('student');
+      console.log('Students found:', allUsers.length);
+      const studentsWithoutPassword = allUsers.map((student: any) => ({ ...student, password: undefined }));
       res.json(studentsWithoutPassword);
     } catch (error) {
       console.error('Error fetching students:', error);
-      res.status(500).json({ message: 'Failed to get user', error: String(error) });
+      res.status(500).json({ message: 'Failed to get students', error: String(error) });
     }
   });
 

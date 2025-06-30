@@ -159,11 +159,11 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Getting students with role:', role);
       const result = await db.select().from(users).where(eq(users.role, role));
-      console.log('Query result:', result);
+      console.log('Query result count:', result.length);
       return result;
     } catch (error) {
       console.error('Error in getStudentsByRole:', error);
-      throw error;
+      throw new Error(`Failed to fetch users by role: ${error}`);
     }
   }
 
