@@ -180,6 +180,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Buscar usuário por ID
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      res.json({ ...user, password: undefined });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to get user' });
+    }
+  });
+
   // Listar estudantes (para professores matricularem)
   app.get("/api/users/students", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
     try {

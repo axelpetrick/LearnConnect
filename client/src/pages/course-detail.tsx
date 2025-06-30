@@ -33,16 +33,22 @@ export default function CourseDetail() {
     enabled: !!id,
   });
 
-  // Buscar estudantes matriculados (para professores/admin)
-  const { data: enrolledStudents = [] } = useQuery<CourseEnrollment[]>({
-    queryKey: ['/api/courses', id, 'students'],
-    enabled: !!id && user && ['tutor', 'admin'].includes(user.role),
+  // Buscar informações do autor do curso
+  const { data: courseAuthor } = useQuery<any>({
+    queryKey: ['/api/users', course?.authorId],
+    enabled: !!course?.authorId,
   });
 
-  // Buscar estudantes disponíveis (para matricular)
-  const { data: availableStudents = [] } = useQuery({
+  // Buscar estudantes matriculados (para todos os usuários)
+  const { data: enrolledStudents = [] } = useQuery<CourseEnrollment[]>({
+    queryKey: ['/api/courses', id, 'students'],
+    enabled: !!id,
+  });
+
+  // Buscar estudantes disponíveis (para matricular) - com tipagem correta
+  const { data: availableStudents = [] } = useQuery<any[]>({
     queryKey: ['/api/users/students'],
-    enabled: user && ['tutor', 'admin'].includes(user.role),
+    enabled: !!(user && ['tutor', 'admin'].includes(user.role)),
   });
 
   // Buscar anotações do curso
@@ -139,15 +145,19 @@ export default function CourseDetail() {
                 <div className="flex items-center text-sm text-gray-500 space-x-6">
                   <div className="flex items-center">
                     <User className="w-4 h-4 mr-1" />
-                    <span>Instrutor</span>
+                    <span>
+                      {courseAuthor && courseAuthor.firstName ? `${courseAuthor.firstName} ${courseAuthor.lastName}` : 'Carregando...'}
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-1" />
-                    <span>Criado em {new Date(course.createdAt).toLocaleDateString('pt-BR')}</span>
+                    <span>
+                      Criado em {course.createdAt ? new Date(course.createdAt).toLocaleDateString('pt-BR') : 'Data indisponível'}
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <Users className="w-4 h-4 mr-1" />
-                    <span>0 alunos matriculados</span>
+                    <span>{enrolledStudents.length} {enrolledStudents.length === 1 ? 'aluno matriculado' : 'alunos matriculados'}</span>
                   </div>
                 </div>
               </div>
@@ -231,23 +241,35 @@ export default function CourseDetail() {
                       <p className="text-gray-600">{course.category}</p>
                     </div>
                     <div>
+                      <h4 className="font-medium text-gray-900 mb-1">Instrutor</h4>
+                      <p className="text-gray-600">
+                        {courseAuthor && courseAuthor.firstName ? `${courseAuthor.firstName} ${courseAuthor.lastName}` : 'Carregando...'}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-1">Alunos Matriculados</h4>
+                      <p className="text-gray-600">
+                        {enrolledStudents.length} {enrolledStudents.length === 1 ? 'aluno' : 'alunos'}
+                      </p>
+                    </div>
+                    <div>
                       <h4 className="font-medium text-gray-900 mb-1">Data de Criação</h4>
                       <p className="text-gray-600">
-                        {new Date(course.createdAt).toLocaleDateString('pt-BR', {
+                        {course.createdAt ? new Date(course.createdAt).toLocaleDateString('pt-BR', {
                           day: 'numeric',
                           month: 'long',
                           year: 'numeric'
-                        })}
+                        }) : 'Data indisponível'}
                       </p>
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">Última Atualização</h4>
                       <p className="text-gray-600">
-                        {new Date(course.updatedAt).toLocaleDateString('pt-BR', {
+                        {course.updatedAt ? new Date(course.updatedAt).toLocaleDateString('pt-BR', {
                           day: 'numeric',
                           month: 'long',
                           year: 'numeric'
-                        })}
+                        }) : 'Data indisponível'}
                       </p>
                     </div>
                   </CardContent>
