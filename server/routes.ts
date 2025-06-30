@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import multer from "multer";
 import path from "path";
+import session from "express-session";
+import MemoryStore from "memorystore";
 import { storage } from "./storage";
 import { 
   loginSchema, insertUserSchema, insertCourseSchema, 
@@ -55,9 +57,22 @@ function requireRole(roles: string[]) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Session configuration
+  const MemStore = MemoryStore(session);
+  app.use(session({
+    cookie: { maxAge: 86400000 }, // 24 hours
+    store: new MemStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    }),
+    secret: process.env.SESSION_SECRET || 'your-session-secret',
+    resave: false,
+    saveUninitialized: false
+  }));
+
   // Auth routes
   app.post("/api/auth/register", async (req, res) => {
     try {
+      console.log('Registration request body:', req.body);
       const userData = insertUserSchema.parse(req.body);
       
       // Check if user already exists
@@ -81,31 +96,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: { ...user, password: undefined }
       });
     } catch (error) {
-      res.status(400).json({ message: 'Invalid registration data' });
+      console.error('Registration error:', error);
+      res.status(400).json({ message: 'Invalid registration data', error: String(error) });
     }
   });
 
   app.post("/api/auth/login", async (req, res) => {
     try {
+      console.log('Login request body:', req.body);
       const { username, password } = loginSchema.parse(req.body);
       
       const user = await storage.getUserByUsername(username);
+      console.log('User found:', user ? 'yes' : 'no');
       if (!user) {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
 
       const validPassword = await bcrypt.compare(password, user.password);
+      console.log('Password valid:', validPassword);
       if (!validPassword) {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
 
       (req as any).session.userId = user.id;
+      console.log('Session set for user:', user.id);
       
       res.json({ 
         user: { ...user, password: undefined }
       });
     } catch (error) {
-      res.status(400).json({ message: 'Invalid login data' });
+      console.error('Login error:', error);
+      res.status(400).json({ message: 'Invalid login data', error: String(error) });
     }
   });
 

@@ -77,11 +77,11 @@ export class MemStorage implements IStorage {
     this.commentVotes = new Map();
     this.currentId = 1;
 
-    // Create admin user with correct password hash
+    // Create admin user with correct password hash for "admin123"
     this.createUser({
       username: "admin",
       email: "admin@educollab.com", 
-      password: "$2b$10$1U7dQFzbBgfudAyFAvGLVOA9tyDc40bpv/L.LpT6sBMx9zWUCI5Qa",
+      password: "$2b$10$a/0ftghSgywDAuIdsHV45uWbC213Y5p.9mJVPO7S9OjToFR2T7BLW",
       firstName: "Admin",
       lastName: "User",
       role: "admin"
