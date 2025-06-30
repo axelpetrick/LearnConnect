@@ -201,6 +201,7 @@ export default function CourseDetail() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/notes/completed', id] });
       queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
     },
     onError: (error) => {
       toast({
@@ -223,6 +224,7 @@ export default function CourseDetail() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/notes/completed', id] });
       queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
     },
     onError: (error) => {
       toast({
