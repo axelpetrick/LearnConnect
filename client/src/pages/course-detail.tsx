@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Book, User, Calendar, Users, Play, CheckCircle, UserPlus, GraduationCap, FileText, Plus, Trash2 } from 'lucide-react';
+import { Book, User, Calendar, Users, Play, CheckCircle, UserPlus, GraduationCap, FileText, Plus, Trash2, Edit, MoreVertical } from 'lucide-react';
 import { Course, CourseEnrollment, Note } from '@shared/schema';
 
 export default function CourseDetail() {
@@ -28,6 +29,8 @@ export default function CourseDetail() {
   const [noteContent, setNoteContent] = useState('');
   const [noteIsPublic, setNoteIsPublic] = useState(true);
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const { id } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -117,6 +120,48 @@ export default function CourseDetail() {
     onError: (error) => {
       toast({
         title: 'Erro ao remover estudante',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const updateNoteMutation = useMutation({
+    mutationFn: async ({ noteId, data }: { noteId: number; data: any }) => {
+      return apiRequest('PUT', `/api/notes/${noteId}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Anotação atualizada',
+        description: 'A anotação foi atualizada com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/notes/course', id] });
+      setEditDialogOpen(false);
+      setEditingNote(null);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao atualizar anotação',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: async (noteId: number) => {
+      return apiRequest('DELETE', `/api/notes/${noteId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Anotação excluída',
+        description: 'A anotação foi excluída com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/notes/course', id] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao excluir anotação',
         description: error.message,
         variant: 'destructive',
       });
@@ -900,6 +945,78 @@ export default function CourseDetail() {
                                 </div>
                               </DialogContent>
                             </Dialog>
+
+                            {/* Modal de Edição de Anotação */}
+                            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                              <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>Editar Anotação</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div>
+                                    <Label htmlFor="edit-note-title">Título</Label>
+                                    <Input
+                                      id="edit-note-title"
+                                      value={noteTitle}
+                                      onChange={(e) => setNoteTitle(e.target.value)}
+                                      placeholder="Título da anotação"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit-note-content">Conteúdo</Label>
+                                    <Textarea
+                                      id="edit-note-content"
+                                      value={noteContent}
+                                      onChange={(e) => setNoteContent(e.target.value)}
+                                      placeholder="Escreva o conteúdo da anotação..."
+                                      rows={4}
+                                    />
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="checkbox"
+                                      id="edit-note-public"
+                                      checked={noteIsPublic}
+                                      onChange={(e) => setNoteIsPublic(e.target.checked)}
+                                    />
+                                    <Label htmlFor="edit-note-public">Anotação pública (visível para todos os estudantes)</Label>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      onClick={() => {
+                                        setEditDialogOpen(false);
+                                        setEditingNote(null);
+                                        setNoteTitle('');
+                                        setNoteContent('');
+                                        setNoteIsPublic(true);
+                                      }}
+                                      variant="outline"
+                                      className="flex-1"
+                                    >
+                                      Cancelar
+                                    </Button>
+                                    <Button 
+                                      onClick={() => {
+                                        if (editingNote && noteTitle && noteContent) {
+                                          updateNoteMutation.mutate({
+                                            noteId: editingNote.id,
+                                            data: {
+                                              title: noteTitle,
+                                              content: noteContent,
+                                              isPublic: noteIsPublic
+                                            }
+                                          });
+                                        }
+                                      }}
+                                      className="flex-1"
+                                      disabled={!noteTitle || !noteContent || updateNoteMutation.isPending}
+                                    >
+                                      {updateNoteMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
                             
                             {courseNotes.length === 0 ? (
                               <div className="text-center py-8">
@@ -933,9 +1050,38 @@ export default function CourseDetail() {
                                         </div>
                                       </div>
                                       <div className="flex gap-2 ml-4">
-                                        <Button size="sm" variant="outline">
-                                          Editar
-                                        </Button>
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button size="sm" variant="outline">
+                                              <MoreVertical className="w-4 h-4" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent>
+                                            <DropdownMenuItem
+                                              onClick={() => {
+                                                setEditingNote(note);
+                                                setNoteTitle(note.title);
+                                                setNoteContent(note.content);
+                                                setNoteIsPublic(note.isPublic ?? true);
+                                                setEditDialogOpen(true);
+                                              }}
+                                            >
+                                              <Edit className="w-4 h-4 mr-2" />
+                                              Editar
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              onClick={() => {
+                                                if (confirm(`Tem certeza que deseja excluir a anotação "${note.title}"?`)) {
+                                                  deleteNoteMutation.mutate(note.id);
+                                                }
+                                              }}
+                                              className="text-red-600"
+                                            >
+                                              <Trash2 className="w-4 h-4 mr-2" />
+                                              Excluir
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
                                       </div>
                                     </div>
                                   </div>

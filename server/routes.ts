@@ -436,6 +436,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/notes/:id", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const note = await storage.getNote(id);
+      
+      if (!note) {
+        return res.status(404).json({ message: 'Note not found' });
+      }
+      
+      if (note.authorId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Not authorized to delete this note' });
+      }
+
+      const success = await storage.deleteNote(id);
+      if (!success) {
+        return res.status(404).json({ message: 'Note not found' });
+      }
+      
+      res.json({ message: 'Note deleted successfully' });
+    } catch (error) {
+      res.status(400).json({ message: 'Failed to delete note' });
+    }
+  });
+
   // Forum routes
   app.get("/api/forum/topics", async (req, res) => {
     try {
