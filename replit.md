@@ -166,6 +166,12 @@ Changelog:
   * Changed default display from usernames to real names (firstName) for all users
   * Added cache separation by user role to prevent data leakage between user types
   * Enhanced forum security with proper access control for sensitive information
+- July 1, 2025: Calendar auto-close and authentication fixes
+  * Fixed login redirection issue where users couldn't reach dashboard after authentication
+  * Implemented automatic calendar popup closure after date selection for attendance/absence
+  * Enhanced authentication debugging with console logs and improved state management
+  * Finalized real name display system prioritizing firstName over username across platform
+  * Fixed calendar popover UX - now closes immediately after selecting attendance/absence dates
 ```
 
 ## User Preferences

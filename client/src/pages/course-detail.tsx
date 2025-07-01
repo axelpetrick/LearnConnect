@@ -60,6 +60,7 @@ export default function CourseDetail() {
         description: `Presença registrada para ${date.toLocaleDateString('pt-BR')}.`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+      // Fechar o calendário imediatamente após marcar presença
       setAttendanceCalendarOpen(null);
     } catch (error: any) {
       toast({
@@ -67,6 +68,8 @@ export default function CourseDetail() {
         description: error.response?.data?.message || 'Não foi possível marcar presença',
         variant: 'destructive',
       });
+      // Fechar o calendário mesmo em caso de erro
+      setAttendanceCalendarOpen(null);
     }
   };
 
@@ -81,6 +84,7 @@ export default function CourseDetail() {
         description: `Falta registrada para ${date.toLocaleDateString('pt-BR')}.`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+      // Fechar o calendário imediatamente após marcar falta
       setAbsenceCalendarOpen(null);
     } catch (error: any) {
       toast({
@@ -88,6 +92,8 @@ export default function CourseDetail() {
         description: error.response?.data?.message || 'Não foi possível marcar falta',
         variant: 'destructive',
       });
+      // Fechar o calendário mesmo em caso de erro
+      setAbsenceCalendarOpen(null);
     }
   };
 
@@ -727,7 +733,7 @@ export default function CourseDetail() {
                                   const studentName = isCurrentUser 
                                     ? 'Você' 
                                     : enrollment.user 
-                                      ? `${enrollment.user.firstName || enrollment.user.username}` 
+                                      ? enrollment.user.firstName 
                                       : `Estudante ${enrollment.userId}`;
                                   
                                   return (
@@ -1099,7 +1105,6 @@ export default function CourseDetail() {
                                         </p>
                                         <div className="flex items-center gap-4 mt-1">
                                           <span className="text-sm text-gray-500">
-                                            {enrollment.user && `@${enrollment.user.username} • `}
                                             Progresso: {enrollment.progress || 0}%
                                           </span>
                                           {enrollment.grade ? (

@@ -46,9 +46,20 @@ function CommentItem({ comment, topicId, level = 0 }: CommentItemProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Função para exibir o nome do autor - o backend já processa o nome correto
+  // Função para exibir o nome do autor - prioriza firstName
   const getDisplayName = () => {
-    return comment.author?.username || 'Usuário Desconhecido';
+    if (!comment.author) return 'Usuário Desconhecido';
+    
+    // Se o comentário é anônimo e o usuário atual é admin, mostrar nome real para moderação
+    if (comment.isAnonymous) {
+      if (user?.role === 'admin') {
+        return comment.author.firstName ? `Anônimo (${comment.author.firstName})` : `Anônimo (${comment.author.username})`;
+      }
+      return 'Anônimo';
+    }
+    
+    // Para comentários não anônimos, usar firstName
+    return comment.author.firstName || comment.author.username || 'Usuário Desconhecido';
   };
 
   const voteMutation = useMutation({
