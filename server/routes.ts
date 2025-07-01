@@ -915,6 +915,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dados para gráficos de progresso dos cursos
+  app.get("/api/courses/progress-data", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const courses = await storage.getCourses();
+      const progressData = [];
+
+      for (const course of courses) {
+        const enrollments = await storage.getCourseEnrollments(course.id);
+        const notes = await storage.getNotesByCourse(course.id);
+        
+        // Calcular notas concluídas total
+        let totalCompletedNotes = 0;
+        for (const enrollment of enrollments) {
+          const completed = await storage.getCompletedNotes(enrollment.userId, course.id);
+          totalCompletedNotes += completed.length;
+        }
+
+        // Calcular nota média
+        let totalGrade = 0;
+        let studentsWithGrades = 0;
+        for (const enrollment of enrollments) {
+          if (enrollment.grade !== null) {
+            totalGrade += enrollment.grade;
+            studentsWithGrades++;
+          }
+        }
+        const averageGrade = studentsWithGrades > 0 ? totalGrade / studentsWithGrades : 0;
+
+        progressData.push({
+          courseName: course.title.length > 15 ? course.title.substring(0, 15) + '...' : course.title,
+          totalStudents: enrollments.length,
+          completedNotes: totalCompletedNotes,
+          averageGrade: Math.round(averageGrade * 10) / 10,
+          progressPercentage: notes.length > 0 ? Math.round((totalCompletedNotes / (notes.length * enrollments.length)) * 100) : 0
+        });
+      }
+
+      res.json(progressData);
+    } catch (error) {
+      console.error('Failed to get course progress data:', error);
+      res.status(500).json({ message: 'Failed to get course progress data' });
+    }
+  });
+
+  // Dados de performance dos estudantes
+  app.get("/api/students/performance-data", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const students = await storage.getStudentsByRole('student');
+      const performanceData = [];
+
+      for (const student of students) {
+        const enrollments = await storage.getUserEnrollments(student.id);
+        
+        if (enrollments.length > 0) {
+          // Calcular progresso médio e nota média
+          let totalProgress = 0;
+          let totalGrade = 0;
+          let coursesWithGrades = 0;
+          
+          for (const enrollment of enrollments) {
+            totalProgress += enrollment.progress || 0;
+            if (enrollment.grade !== null) {
+              totalGrade += enrollment.grade;
+              coursesWithGrades++;
+            }
+          }
+          
+          const averageProgress = totalProgress / enrollments.length;
+          const averageGrade = coursesWithGrades > 0 ? totalGrade / coursesWithGrades : 0;
+          
+          // Determinar status baseado na nota média
+          let status: 'Cursando' | 'Aprovado' | 'Reprovado' = 'Cursando';
+          if (coursesWithGrades > 0) {
+            status = averageGrade >= 7 ? 'Aprovado' : 'Reprovado';
+          }
+
+          performanceData.push({
+            studentName: student.firstName || student.username,
+            grade: Math.round(averageGrade * 10) / 10,
+            progress: Math.round(averageProgress),
+            status
+          });
+        }
+      }
+
+      res.json(performanceData);
+    } catch (error) {
+      console.error('Failed to get student performance data:', error);
+      res.status(500).json({ message: 'Failed to get student performance data' });
+    }
+  });
+
   // Serve uploaded files
   app.use('/uploads', express.static('uploads'));
 
