@@ -1,0 +1,717 @@
+openapi: 3.0.0
+info:
+  title: EduCollab API
+  description: API completa para a plataforma de aprendizado colaborativo EduCollab
+  version: 1.0.0
+  contact:
+    name: EduCollab Team
+    email: dev@educollab.com
+servers:
+  - url: http://localhost:5000/api
+    description: Servidor de desenvolvimento
+  - url: https://educollab.replit.app/api
+    description: Servidor de produção
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: "admin"
+        email:
+          type: string
+          example: "admin@educollab.com"
+        firstName:
+          type: string
+          example: "João"
+        lastName:
+          type: string
+          example: "Silva"
+        role:
+          type: string
+          enum: [student, tutor, admin]
+          example: "admin"
+        avatar:
+          type: string
+          nullable: true
+          example: null
+        createdAt:
+          type: string
+          format: date-time
+    
+    Course:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "Medicina de Software"
+        description:
+          type: string
+          example: "Curso avançado de desenvolvimento"
+        authorId:
+          type: integer
+          example: 1
+        category:
+          type: string
+          example: "Tecnologia"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["javascript", "react"]
+        isPublished:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    
+    Note:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "Introdução ao React"
+        content:
+          type: string
+          example: "Conteúdo da nota..."
+        authorId:
+          type: integer
+          example: 1
+        courseId:
+          type: integer
+          nullable: true
+          example: 1
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["react", "frontend"]
+        isPublic:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    
+    ForumTopic:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "Dúvida sobre React Hooks"
+        content:
+          type: string
+          example: "Como usar useState corretamente?"
+        authorId:
+          type: integer
+          example: 1
+        courseId:
+          type: integer
+          nullable: true
+          example: 1
+        isPinned:
+          type: boolean
+          example: false
+        views:
+          type: integer
+          example: 10
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Mensagem de erro"
+        error:
+          type: string
+          example: "Código do erro"
+
+security:
+  - bearerAuth: []
+
+paths:
+  # AUTENTICAÇÃO
+  /auth/register:
+    post:
+      tags:
+        - Autenticação
+      summary: Registrar novo usuário
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+                - firstName
+                - lastName
+              properties:
+                username:
+                  type: string
+                  example: "joao123"
+                email:
+                  type: string
+                  example: "joao@example.com"
+                password:
+                  type: string
+                  example: "senha123"
+                firstName:
+                  type: string
+                  example: "João"
+                lastName:
+                  type: string
+                  example: "Silva"
+                role:
+                  type: string
+                  enum: [student, tutor, admin]
+                  example: "student"
+      responses:
+        201:
+          description: Usuário criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        400:
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags:
+        - Autenticação
+      summary: Login do usuário
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: "admin"
+                password:
+                  type: string
+                  example: "admin123"
+      responses:
+        200:
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  user:
+                    $ref: '#/components/schemas/User'
+        401:
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags:
+        - Autenticação
+      summary: Logout do usuário
+      responses:
+        200:
+          description: Logout realizado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logout realizado com sucesso"
+
+  # USUÁRIOS
+  /users/me:
+    get:
+      tags:
+        - Usuários
+      summary: Obter dados do usuário logado
+      responses:
+        200:
+          description: Dados do usuário
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        401:
+          description: Não autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{id}:
+    get:
+      tags:
+        - Usuários
+      summary: Obter usuário por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: Dados do usuário
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        404:
+          description: Usuário não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/stats:
+    get:
+      tags:
+        - Usuários
+      summary: Obter estatísticas do usuário
+      responses:
+        200:
+          description: Estatísticas do usuário
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  coursesEnrolled:
+                    type: integer
+                    example: 5
+                  coursesCompleted:
+                    type: integer
+                    example: 2
+                  notesCreated:
+                    type: integer
+                    example: 10
+                  forumPosts:
+                    type: integer
+                    example: 8
+
+  # CURSOS
+  /courses:
+    get:
+      tags:
+        - Cursos
+      summary: Listar todos os cursos
+      responses:
+        200:
+          description: Lista de cursos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Course'
+    
+    post:
+      tags:
+        - Cursos
+      summary: Criar novo curso
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+                - category
+              properties:
+                title:
+                  type: string
+                  example: "Curso de Python"
+                description:
+                  type: string
+                  example: "Aprenda Python do básico ao avançado"
+                category:
+                  type: string
+                  example: "Programação"
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  example: ["python", "programacao"]
+      responses:
+        201:
+          description: Curso criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+
+  /courses/{id}:
+    get:
+      tags:
+        - Cursos
+      summary: Obter curso por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: Dados do curso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+        404:
+          description: Curso não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Cursos
+      summary: Atualizar curso
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: "Curso de Python Atualizado"
+                description:
+                  type: string
+                  example: "Descrição atualizada"
+                category:
+                  type: string
+                  example: "Programação"
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        200:
+          description: Curso atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+
+    delete:
+      tags:
+        - Cursos
+      summary: Deletar curso
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: Curso deletado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Curso deletado com sucesso"
+
+  /courses/{id}/enroll:
+    post:
+      tags:
+        - Cursos
+      summary: Matricular-se em um curso
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: Matrícula realizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Matrícula realizada com sucesso"
+
+  # NOTAS
+  /notes:
+    get:
+      tags:
+        - Notas
+      summary: Listar notas
+      parameters:
+        - name: courseId
+          in: query
+          schema:
+            type: integer
+            example: 1
+        - name: authorId
+          in: query
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: Lista de notas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+
+    post:
+      tags:
+        - Notas
+      summary: Criar nova nota
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+              properties:
+                title:
+                  type: string
+                  example: "Minha Nota"
+                content:
+                  type: string
+                  example: "Conteúdo da nota..."
+                courseId:
+                  type: integer
+                  example: 1
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  example: ["importante"]
+                isPublic:
+                  type: boolean
+                  example: true
+      responses:
+        201:
+          description: Nota criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+
+  # FÓRUM
+  /forum/topics:
+    get:
+      tags:
+        - Fórum
+      summary: Listar tópicos do fórum
+      parameters:
+        - name: courseId
+          in: query
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: Lista de tópicos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ForumTopic'
+
+    post:
+      tags:
+        - Fórum
+      summary: Criar novo tópico
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+              properties:
+                title:
+                  type: string
+                  example: "Nova discussão"
+                content:
+                  type: string
+                  example: "Conteúdo da discussão..."
+                courseId:
+                  type: integer
+                  example: 1
+      responses:
+        201:
+          description: Tópico criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForumTopic'
+
+  /forum/topics/{id}/comments:
+    get:
+      tags:
+        - Fórum
+      summary: Listar comentários de um tópico
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        200:
+          description: Lista de comentários
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    content:
+                      type: string
+                    authorId:
+                      type: integer
+                    topicId:
+                      type: integer
+                    parentId:
+                      type: integer
+                      nullable: true
+                    votes:
+                      type: integer
+                    isAnonymous:
+                      type: boolean
+                    createdAt:
+                      type: string
+                      format: date-time
+
+    post:
+      tags:
+        - Fórum
+      summary: Criar comentário em tópico
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  example: "Meu comentário..."
+                parentId:
+                  type: integer
+                  nullable: true
+                  example: null
+                isAnonymous:
+                  type: boolean
+                  example: false
+      responses:
+        201:
+          description: Comentário criado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  message:
+                    type: string
+                    example: "Comentário criado com sucesso"
