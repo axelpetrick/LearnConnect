@@ -146,6 +146,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Recuperação de senha
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      console.log('🔍 Password reset requested for email:', email);
+      
+      // Verificar se o usuário existe
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: 'Usuário não encontrado com este email' });
+      }
+      
+      // Gerar nova senha aleatória
+      const newPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+      console.log('Generated new password for user:', user.username);
+      
+      // Hash da nova senha
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      
+      // Atualizar senha no banco
+      await storage.updateUser(user.id, { password: hashedPassword });
+      
+      // Verificar se SendGrid está configurado
+      if (!process.env.SENDGRID_API_KEY) {
+        console.log('⚠️ SendGrid not configured, returning password in response (dev mode)');
+        return res.json({ 
+          message: 'Nova senha gerada (modo desenvolvimento)', 
+          newPassword: newPassword,
+          note: 'Em produção, esta senha seria enviada por email'
+        });
+      }
+      
+      // Enviar email com SendGrid
+      try {
+        const sgMail = require('@sendgrid/mail');
+        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+        
+        const msg = {
+          to: email,
+          from: 'noreply@educollab.com', // Substitua pelo seu email verificado no SendGrid
+          subject: 'Nova senha - EduCollab',
+          text: `Olá ${user.firstName},\n\nSua nova senha é: ${newPassword}\n\nPor favor, faça login e altere sua senha.\n\nEquipe EduCollab`,
+          html: `
+            <h2>Nova senha - EduCollab</h2>
+            <p>Olá <strong>${user.firstName}</strong>,</p>
+            <p>Sua nova senha é: <strong>${newPassword}</strong></p>
+            <p>Por favor, faça login e altere sua senha.</p>
+            <p>Equipe EduCollab</p>
+          `,
+        };
+        
+        await sgMail.send(msg);
+        console.log('✅ Password reset email sent successfully to:', email);
+        
+        res.json({ message: 'Nova senha enviada por email' });
+      } catch (emailError) {
+        console.error('❌ Failed to send email:', emailError);
+        
+        // Se falhar no envio, retornar a senha (modo fallback)
+        res.json({ 
+          message: 'Falha no envio do email, nova senha gerada', 
+          newPassword: newPassword,
+          note: 'Use esta senha para fazer login'
+        });
+      }
+      
+    } catch (error) {
+      console.error('❌ Error in password reset:', error);
+      res.status(500).json({ message: 'Erro ao processar recuperação de senha' });
+    }
+  });
+
   // User routes
   app.put("/api/users/profile", authenticateToken, async (req: any, res) => {
     try {

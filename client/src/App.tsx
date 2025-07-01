@@ -7,7 +7,6 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
-import Register from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
 import Courses from "@/pages/courses";
 import CourseDetail from "@/pages/course-detail";
@@ -25,7 +24,6 @@ function Router() {
     <Switch>
       {/* Public routes */}
       <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
       
       {/* Protected routes */}
       <Route path="/" component={() => (

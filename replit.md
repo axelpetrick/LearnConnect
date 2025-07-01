@@ -177,6 +177,14 @@ Changelog:
   * Students now appear correctly in course detail pages (Juliana and Axel visible in Medicina de software)
   * Removed "Anotações" option from sidebar navigation menu as requested by user
   * Simplified navigation to only include: Dashboard, Cursos, Fórum, and Relatórios
+- July 1, 2025: User management system and password recovery
+  * Removed registration page and added admin-only user management interface
+  * Created complete CRUD system for user management with role-based access control
+  * Added "Gerenciar Usuários" menu option visible only to administrators
+  * Implemented password recovery system with random password generation
+  * Integrated SendGrid email service for password reset notifications
+  * Added validation to prevent duplicate student enrollment in courses
+  * Enhanced SearchableSelect component with unified search functionality
 ```
 
 ## User Preferences
