@@ -360,7 +360,50 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getForumComments(topicId: number): Promise<ForumComment[]> {
-    return await db.select().from(forumComments).where(eq(forumComments.topicId, topicId));
+    const comments = await db
+      .select({
+        id: forumComments.id,
+        createdAt: forumComments.createdAt,
+        content: forumComments.content,
+        authorId: forumComments.authorId,
+        updatedAt: forumComments.updatedAt,
+        topicId: forumComments.topicId,
+        parentId: forumComments.parentId,
+        votes: forumComments.votes,
+        isAnonymous: forumComments.isAnonymous,
+        authorFirstName: users.firstName,
+        authorLastName: users.lastName,
+        authorUsername: users.username,
+        authorRole: users.role,
+        authorEmail: users.email,
+        authorAvatar: users.avatar,
+      })
+      .from(forumComments)
+      .leftJoin(users, eq(forumComments.authorId, users.id))
+      .where(eq(forumComments.topicId, topicId))
+      .orderBy(forumComments.createdAt);
+
+    return comments.map(comment => ({
+      id: comment.id,
+      createdAt: comment.createdAt,
+      content: comment.content,
+      authorId: comment.authorId,
+      updatedAt: comment.updatedAt,
+      topicId: comment.topicId,
+      parentId: comment.parentId,
+      votes: comment.votes,
+      isAnonymous: comment.isAnonymous,
+      author: {
+        id: comment.authorId,
+        firstName: comment.authorFirstName,
+        lastName: comment.authorLastName,
+        username: comment.authorUsername,
+        email: comment.authorEmail,
+        role: comment.authorRole,
+        avatar: comment.authorAvatar,
+        createdAt: new Date(),
+      },
+    }));
   }
 
   async getForumComment(id: number): Promise<ForumComment | undefined> {
@@ -513,9 +556,64 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecentActivityForProfessor(professorId: number): Promise<any[]> {
-    // Implementação básica - pode ser expandida
-    const recentCourses = await this.getCoursesByAuthor(professorId);
-    return recentCourses.slice(0, 5);
+    // Buscar cursos do professor
+    const professorCourses = await this.getCoursesByAuthor(professorId);
+    const courseIds = professorCourses.map(c => c.id);
+    
+    if (courseIds.length === 0) return [];
+    
+    // Buscar atividades recentes dos cursos do professor
+    const activities = [];
+    
+    // Matrículas recentes
+    const recentEnrollments = await db
+      .select({
+        id: courseEnrollments.id,
+        type: sql<string>`'enrollment'`,
+        userId: courseEnrollments.userId,
+        courseId: courseEnrollments.courseId,
+        createdAt: courseEnrollments.enrolledAt,
+        studentName: users.firstName,
+        courseName: courses.title,
+      })
+      .from(courseEnrollments)
+      .leftJoin(users, eq(courseEnrollments.userId, users.id))
+      .leftJoin(courses, eq(courseEnrollments.courseId, courses.id))
+      .where(inArray(courseEnrollments.courseId, courseIds))
+      .orderBy(desc(courseEnrollments.enrolledAt))
+      .limit(10);
+      
+    activities.push(...recentEnrollments);
+
+    // Completações de notas recentes
+    const recentCompletions = await db
+      .select({
+        id: noteCompletions.userId,
+        type: sql<string>`'note_completion'`,
+        userId: noteCompletions.userId,
+        courseId: notes.courseId,
+        createdAt: noteCompletions.completedAt,
+        studentName: users.firstName,
+        courseName: courses.title,
+        noteTitle: notes.title,
+      })
+      .from(noteCompletions)
+      .leftJoin(notes, eq(noteCompletions.noteId, notes.id))
+      .leftJoin(users, eq(noteCompletions.userId, users.id))
+      .leftJoin(courses, eq(notes.courseId, courses.id))
+      .where(and(
+        inArray(notes.courseId, courseIds),
+        sql`${notes.courseId} IS NOT NULL`
+      ))
+      .orderBy(desc(noteCompletions.completedAt))
+      .limit(10);
+      
+    activities.push(...recentCompletions);
+
+    // Ordenar por data mais recente
+    return activities
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 10);
   }
 
   async getPopularDiscussions(): Promise<ForumTopic[]> {

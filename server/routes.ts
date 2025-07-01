@@ -309,12 +309,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Atividade recente para professores/tutores
   app.get("/api/users/recent-activity", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 5;
-      const recentActivity = await storage.getRecentActivityForProfessor(req.user.id, page, limit);
+      const recentActivity = await storage.getRecentActivityForProfessor(req.user.id);
       res.json(recentActivity);
     } catch (error) {
       res.status(500).json({ message: 'Failed to get recent activity' });
+    }
+  });
+
+  // Get courses for filter (professors see only their courses, admins see all)
+  app.get('/api/courses/filter', authenticateToken, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const userRole = req.user.role;
+      
+      let courses;
+      if (userRole === 'admin') {
+        courses = await storage.getCourses();
+      } else {
+        courses = await storage.getCoursesByAuthor(userId);
+      }
+      
+      res.json(courses);
+    } catch (error) {
+      console.error('Error getting courses for filter:', error);
+      res.status(500).json({ message: 'Failed to get courses' });
     }
   });
 
