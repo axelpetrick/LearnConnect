@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   Home,
+  UserCog,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -28,6 +29,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { name: 'Cursos', href: '/courses', icon: Book },
     { name: 'Fórum', href: '/forum', icon: MessageSquare },
     { name: 'Relatórios', href: '/reports', icon: BarChart3 },
+    ...(user?.role === 'admin' ? [
+      { name: 'Gerenciar Usuários', href: '/users', icon: UserCog },
+    ] : []),
   ];
 
   const getRoleBadgeColor = (role: string) => {

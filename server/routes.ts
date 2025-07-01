@@ -256,6 +256,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Buscar usuário por ID - DEVE VIR DEPOIS DA ROTA /students
+  // Listar todos os usuários (apenas para admins)
+  app.get("/api/users", authenticateToken, requireRole(['admin']), async (req: any, res) => {
+    try {
+      console.log('🔍 API /api/users called by admin:', req.user?.username);
+      
+      // Buscar todos os usuários
+      const allUsers = await storage.getAllUsers();
+      
+      // Remover senhas por segurança
+      const safeUsers = allUsers.map(user => {
+        const { password, ...safeUser } = user;
+        return safeUser;
+      });
+      
+      console.log(`✅ Returning ${safeUsers.length} users`);
+      res.json(safeUsers);
+    } catch (error) {
+      console.error('❌ Error fetching all users:', error);
+      res.status(500).json({ message: 'Failed to fetch users' });
+    }
+  });
+
   app.get("/api/users/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -266,6 +288,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ ...user, password: undefined });
     } catch (error) {
       res.status(500).json({ message: 'Failed to get user' });
+    }
+  });
+
+  // Criar usuário (apenas para admins)
+  app.post("/api/users", authenticateToken, requireRole(['admin']), async (req: any, res) => {
+    try {
+      const { username, email, password, firstName, lastName, role } = req.body;
+      
+      console.log('🔍 Creating user:', { username, email, firstName, lastName, role });
+      
+      // Verificar se username ou email já existem
+      const existingUserByUsername = await storage.getUserByUsername(username);
+      if (existingUserByUsername) {
+        return res.status(400).json({ message: 'Username já está em uso' });
+      }
+      
+      const existingUserByEmail = await storage.getUserByEmail(email);
+      if (existingUserByEmail) {
+        return res.status(400).json({ message: 'Email já está em uso' });
+      }
+      
+      // Hash da senha
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      const newUser = await storage.createUser({
+        username,
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        role,
+        avatar: null
+      });
+      
+      // Remover senha da resposta
+      const { password: _, ...safeUser } = newUser;
+      
+      console.log('✅ User created successfully:', safeUser.id);
+      res.status(201).json(safeUser);
+    } catch (error) {
+      console.error('❌ Error creating user:', error);
+      res.status(500).json({ message: 'Failed to create user' });
+    }
+  });
+
+  // Atualizar usuário (apenas para admins)
+  app.put("/api/users/:id", authenticateToken, requireRole(['admin']), async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { username, email, firstName, lastName, role } = req.body;
+      
+      console.log('🔍 Updating user:', userId, { username, email, firstName, lastName, role });
+      
+      // Verificar se o usuário existe
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+      
+      // Verificar se username ou email já existem em outros usuários
+      if (username !== existingUser.username) {
+        const userWithUsername = await storage.getUserByUsername(username);
+        if (userWithUsername && userWithUsername.id !== userId) {
+          return res.status(400).json({ message: 'Username já está em uso por outro usuário' });
+        }
+      }
+      
+      if (email !== existingUser.email) {
+        const userWithEmail = await storage.getUserByEmail(email);
+        if (userWithEmail && userWithEmail.id !== userId) {
+          return res.status(400).json({ message: 'Email já está em uso por outro usuário' });
+        }
+      }
+      
+      const updatedUser = await storage.updateUser(userId, {
+        username,
+        email,
+        firstName,
+        lastName,
+        role
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+      
+      // Remover senha da resposta
+      const { password: _, ...safeUser } = updatedUser;
+      
+      console.log('✅ User updated successfully:', safeUser.id);
+      res.json(safeUser);
+    } catch (error) {
+      console.error('❌ Error updating user:', error);
+      res.status(500).json({ message: 'Failed to update user' });
+    }
+  });
+
+  // Deletar usuário (apenas para admins)
+  app.delete("/api/users/:id", authenticateToken, requireRole(['admin']), async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      console.log('🔍 Deleting user:', userId);
+      
+      // Verificar se o usuário existe
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+      
+      // Impedir que admin delete a si mesmo
+      if (userId === req.user.id) {
+        return res.status(400).json({ message: 'Você não pode deletar sua própria conta' });
+      }
+      
+      const success = await storage.deleteUser(userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+      
+      console.log('✅ User deleted successfully:', userId);
+      res.json({ message: 'Usuário removido com sucesso' });
+    } catch (error) {
+      console.error('❌ Error deleting user:', error);
+      res.status(500).json({ message: 'Failed to delete user' });
     }
   });
 

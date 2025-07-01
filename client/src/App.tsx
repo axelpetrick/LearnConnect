@@ -18,6 +18,7 @@ import Forum from "@/pages/forum";
 import ForumTopic from "@/pages/forum-topic";
 import Profile from "@/pages/profile";
 import Reports from "@/pages/reports";
+import UserManagement from "@/pages/user-management";
 
 function Router() {
   return (
@@ -75,6 +76,11 @@ function Router() {
       <Route path="/reports" component={() => (
         <ProtectedRoute>
           <Reports />
+        </ProtectedRoute>
+      )} />
+      <Route path="/users" component={() => (
+        <ProtectedRoute>
+          <UserManagement />
         </ProtectedRoute>
       )} />
       
