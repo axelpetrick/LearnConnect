@@ -727,6 +727,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecentActivityForProfessor(professorId: number): Promise<any[]> {
+    console.log('Getting recent activity for professor:', professorId);
+    
     // Buscar todas as conclusões de notas dos alunos nos cursos do professor
     const recentActivities = await db
       .select({
@@ -748,6 +750,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(noteCompletions.completedAt))
       .limit(10); // Últimas 10 atividades
 
+    console.log('Found recent activities:', recentActivities.length);
     return recentActivities;
   }
 }
