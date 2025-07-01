@@ -1026,9 +1026,9 @@ export default function CourseDetail() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <SearchableSelect
-                            label="Selecionar Estudante"
+                            label="Buscar e Selecionar Estudante"
                             placeholder="Escolha um estudante para matricular"
-                            searchPlaceholder="Digite o nome, username ou email do estudante..."
+                            searchPlaceholder="Digite o nome e aperte Enter para buscar..."
                             items={availableStudents}
                             value={selectedStudent}
                             onValueChange={setSelectedStudent}
