@@ -185,6 +185,14 @@ Changelog:
   * Integrated SendGrid email service for password reset notifications
   * Added validation to prevent duplicate student enrollment in courses
   * Enhanced SearchableSelect component with unified search functionality
+- July 1, 2025: UI cleanup and password management restructure
+  * Removed "Esqueceu sua senha?" option from login screen
+  * Removed search bar and notification bell from top header
+  * Removed "Relatórios" option from sidebar navigation menu
+  * Added password change functionality in user profile/settings page
+  * Added password reset option in admin user management interface
+  * Implemented secure password change with current password validation
+  * Created API endpoints for both self-password change and admin password reset
 ```
 
 ## User Preferences

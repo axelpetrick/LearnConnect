@@ -28,7 +28,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Cursos', href: '/courses', icon: Book },
     { name: 'Fórum', href: '/forum', icon: MessageSquare },
-    { name: 'Relatórios', href: '/reports', icon: BarChart3 },
     ...(user?.role === 'admin' ? [
       { name: 'Gerenciar Usuários', href: '/users', icon: UserCog },
     ] : []),

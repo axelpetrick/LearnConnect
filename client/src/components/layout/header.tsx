@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
-import { Bell, Menu, Search, LogOut, User } from 'lucide-react';
+import { Menu, LogOut, User } from 'lucide-react';
 
 interface HeaderProps {
   title: string;
@@ -10,14 +8,7 @@ interface HeaderProps {
 }
 
 export function Header({ title, onMenuClick }: HeaderProps) {
-  const [searchQuery, setSearchQuery] = useState('');
   const { user, logout } = useAuth();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Implement search functionality
-    console.log('Search query:', searchQuery);
-  };
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
@@ -38,24 +29,6 @@ export function Header({ title, onMenuClick }: HeaderProps) {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="hidden md:block relative">
-              <Input
-                type="text"
-                placeholder="Buscar cursos, notas..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-80 pl-10"
-              />
-              <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
-            </form>
-
-            {/* Notifications */}
-            <Button variant="ghost" size="sm" className="relative p-2">
-              <Bell className="w-6 h-6" />
-              <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white"></span>
-            </Button>
-
             {/* User Info */}
             {user && (
               <div className="flex items-center space-x-2">

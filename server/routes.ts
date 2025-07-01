@@ -219,6 +219,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Alterar senha própria
+  app.put("/api/users/change-password", authenticateToken, async (req: any, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.user.id;
+      
+      console.log('🔐 Password change request for user:', userId);
+      
+      // Buscar usuário atual
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+      
+      // Verificar senha atual
+      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+      if (!isValidPassword) {
+        return res.status(400).json({ message: 'Senha atual incorreta' });
+      }
+      
+      // Validar nova senha
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ message: 'Nova senha deve ter pelo menos 6 caracteres' });
+      }
+      
+      // Hash da nova senha
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      
+      // Atualizar senha
+      await storage.updateUser(userId, { password: hashedPassword });
+      
+      console.log('✅ Password changed successfully for user:', userId);
+      res.json({ message: 'Senha alterada com sucesso' });
+      
+    } catch (error) {
+      console.error('❌ Error changing password:', error);
+      res.status(500).json({ message: 'Erro ao alterar senha' });
+    }
+  });
+
   // User routes
   app.put("/api/users/profile", authenticateToken, async (req: any, res) => {
     try {

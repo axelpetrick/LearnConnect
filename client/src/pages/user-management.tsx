@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { UserPlus, UserCog, Edit, Trash2, MoreVertical, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, UserCog, Edit, Trash2, MoreVertical, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { User } from '@shared/schema';
 
 export default function UserManagement() {
@@ -171,6 +171,35 @@ export default function UserManagement() {
       role: user.role
     });
     setEditUserOpen(true);
+  };
+
+  const handleResetPassword = async (user: User) => {
+    if (!confirm(`Tem certeza que deseja resetar a senha de ${user.firstName} ${user.lastName}?`)) {
+      return;
+    }
+
+    try {
+      const response = await apiRequest('POST', '/api/auth/reset-password', { email: user.email });
+      const data = await response.json();
+      
+      if (data.newPassword) {
+        toast({
+          title: 'Senha resetada!',
+          description: `Nova senha para ${user.firstName}: ${data.newPassword}`,
+        });
+      } else {
+        toast({
+          title: 'Senha resetada!',
+          description: data.message || 'Uma nova senha foi enviada por email.',
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao resetar senha',
+        description: error.response?.data?.message || 'Não foi possível resetar a senha.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -372,6 +401,13 @@ export default function UserManagement() {
                                   <DropdownMenuItem onClick={() => openEditDialog(user)}>
                                     <Edit className="w-4 h-4 mr-2" />
                                     Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => handleResetPassword(user)}
+                                    className="text-orange-600"
+                                  >
+                                    <KeyRound className="w-4 h-4 mr-2" />
+                                    Resetar Senha
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
                                     onClick={() => {

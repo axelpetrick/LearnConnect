@@ -27,6 +27,12 @@ export default function Profile() {
     username: user?.username || '',
   });
 
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
   const updateProfileMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const response = await apiRequest('PUT', '/api/users/profile', data);
@@ -71,6 +77,31 @@ export default function Profile() {
     },
   });
 
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: typeof passwordData) => {
+      const response = await apiRequest('PUT', '/api/users/change-password', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Senha alterada!',
+        description: 'Sua senha foi alterada com sucesso.',
+      });
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao alterar senha',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateProfileMutation.mutate(formData);
@@ -81,6 +112,30 @@ export default function Profile() {
     if (file) {
       uploadAvatarMutation.mutate(file);
     }
+  };
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: 'Erro de validação',
+        description: 'A nova senha e a confirmação não coincidem.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast({
+        title: 'Erro de validação',
+        description: 'A nova senha deve ter pelo menos 6 caracteres.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    changePasswordMutation.mutate(passwordData);
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -259,6 +314,67 @@ export default function Profile() {
                           disabled={updateProfileMutation.isPending}
                         >
                           {updateProfileMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+
+                {/* Change Password Card */}
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle>Alterar Senha</CardTitle>
+                    <CardDescription>
+                      Atualize sua senha para manter sua conta segura
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                      <div>
+                        <Label htmlFor="currentPassword">Senha Atual</Label>
+                        <Input
+                          id="currentPassword"
+                          type="password"
+                          value={passwordData.currentPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                          placeholder="Digite sua senha atual"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="newPassword">Nova Senha</Label>
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          value={passwordData.newPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                          placeholder="Digite a nova senha"
+                          required
+                          minLength={6}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          value={passwordData.confirmPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                          placeholder="Confirme a nova senha"
+                          required
+                          minLength={6}
+                        />
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button 
+                          type="submit" 
+                          disabled={changePasswordMutation.isPending}
+                          variant="outline"
+                        >
+                          {changePasswordMutation.isPending ? 'Alterando...' : 'Alterar Senha'}
                         </Button>
                       </div>
                     </form>
