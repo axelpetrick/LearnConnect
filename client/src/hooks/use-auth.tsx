@@ -38,8 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const data = await response.json();
+    console.log('Login successful, user data:', data.user);
     auth.setUser(data.user);
     setUser(data.user);
+    console.log('User state updated:', data.user);
   };
 
   const register = async (userData: any) => {

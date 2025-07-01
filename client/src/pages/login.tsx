@@ -30,7 +30,10 @@ export default function Login() {
         title: 'Login realizado com sucesso!',
         description: 'Bem-vindo de volta ao EduCollab.',
       });
-      setLocation('/dashboard');
+      // Aguardar um pequeno delay para garantir que o estado seja atualizado
+      setTimeout(() => {
+        setLocation('/dashboard');
+      }, 100);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login');
     } finally {

@@ -13,17 +13,25 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
 
   useEffect(() => {
     if (!isLoading && !user) {
+      console.log('Redirecting to login - no user found');
       setLocation('/login');
     } else if (user && roles && !roles.includes(user.role)) {
+      console.log('Redirecting to dashboard - insufficient role');
       setLocation('/dashboard');
     }
   }, [user, isLoading, roles, setLocation]);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
   }
 
-  if (!user || (roles && !roles.includes(user.role))) {
+  if (!user) {
+    console.log('No user, should redirect to login');
+    return null;
+  }
+
+  if (roles && !roles.includes(user.role)) {
+    console.log('Insufficient role, should redirect to dashboard');
     return null;
   }
 
