@@ -124,20 +124,25 @@ export default function CourseDetail() {
     queryKey: ['/api/courses', id, 'enrollments-with-users'],
     queryFn: async () => {
       if (!id) return [];
-      // Buscar matrículas
-      const enrollments = await fetch(`/api/courses/${id}/students`).then(res => res.json());
-      // Buscar dados dos usuários para cada matrícula
-      const enrollmentsWithUsers = await Promise.all(
-        enrollments.map(async (enrollment: any) => {
-          const userResponse = await fetch(`/api/users/${enrollment.userId}`);
-          const userData = userResponse.ok ? await userResponse.json() : null;
-          return {
-            ...enrollment,
-            user: userData
-          };
-        })
-      );
-      return enrollmentsWithUsers;
+      try {
+        // Buscar matrículas usando apiRequest para incluir autenticação
+        const enrollments = await apiRequest('GET', `/api/courses/${id}/students`);
+        // Buscar dados dos usuários para cada matrícula
+        const enrollmentsWithUsers = await Promise.all(
+          enrollments.map(async (enrollment: any) => {
+            const userResponse = await fetch(`/api/users/${enrollment.userId}`);
+            const userData = userResponse.ok ? await userResponse.json() : null;
+            return {
+              ...enrollment,
+              user: userData
+            };
+          })
+        );
+        return enrollmentsWithUsers;
+      } catch (error) {
+        console.error('Error fetching enrolled students:', error);
+        return [];
+      }
     },
     enabled: !!(id && user),
   });
