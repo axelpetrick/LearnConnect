@@ -1029,7 +1029,9 @@ export default function CourseDetail() {
                             label="Buscar e Selecionar Estudante"
                             placeholder="Escolha um estudante para matricular"
                             searchPlaceholder="Digite o nome e aperte Enter para buscar..."
-                            items={availableStudents}
+                            items={availableStudents.filter(student => 
+                              !enrolledStudents.some(enrolled => enrolled.userId === student.id)
+                            )}
                             value={selectedStudent}
                             onValueChange={setSelectedStudent}
                             renderItem={(student) => (
@@ -1060,12 +1062,23 @@ export default function CourseDetail() {
                                   queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
                                   queryClient.invalidateQueries({ queryKey: ['/api/users/students'] });
                                   queryClient.invalidateQueries({ queryKey: ['/api/courses', id] });
-                                } catch (error) {
-                                  toast({
-                                    title: 'Erro',
-                                    description: 'Não foi possível matricular o estudante',
-                                    variant: 'destructive',
-                                  });
+                                } catch (error: any) {
+                                  console.error('Error enrolling student:', error);
+                                  
+                                  // Verificar se é erro de duplicação
+                                  if (error.response?.data?.error === 'ALREADY_ENROLLED') {
+                                    toast({
+                                      title: 'Estudante já matriculado',
+                                      description: 'Este estudante já está matriculado neste curso.',
+                                      variant: 'destructive'
+                                    });
+                                  } else {
+                                    toast({
+                                      title: 'Erro ao matricular',
+                                      description: error.response?.data?.message || 'Não foi possível matricular o estudante',
+                                      variant: 'destructive',
+                                    });
+                                  }
                                 }
                               }
                             }}

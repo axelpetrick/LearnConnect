@@ -363,9 +363,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const courseId = parseInt(req.params.id);
       const { studentId } = req.body;
-      const enrollment = await storage.enrollInCourse(studentId, courseId);
+      
+      console.log(`Enrolling student ${studentId} in course ${courseId}`);
+      
+      // Verificar se o estudante já está matriculado no curso
+      const existingEnrollments = await storage.getCourseEnrollments(courseId);
+      const isAlreadyEnrolled = existingEnrollments.some(enrollment => enrollment.userId === parseInt(studentId));
+      
+      if (isAlreadyEnrolled) {
+        console.log(`❌ Student ${studentId} is already enrolled in course ${courseId}`);
+        return res.status(400).json({ 
+          message: 'Este estudante já está matriculado neste curso',
+          error: 'ALREADY_ENROLLED'
+        });
+      }
+      
+      const enrollment = await storage.enrollInCourse(parseInt(studentId), courseId);
+      console.log(`✅ Student ${studentId} successfully enrolled in course ${courseId}`);
       res.json(enrollment);
     } catch (error) {
+      console.error('Error enrolling student:', error);
       res.status(400).json({ message: 'Failed to enroll student' });
     }
   });
