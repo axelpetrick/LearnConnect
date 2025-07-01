@@ -918,44 +918,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dados para gráficos de progresso dos cursos
   app.get("/api/courses/progress-data", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
     try {
+      console.log('Starting course progress data fetch...');
       const courses = await storage.getCourses();
+      console.log('Got courses:', courses.length);
+      
       const progressData = [];
-
+      
       for (const course of courses) {
-        const enrollments = await storage.getCourseEnrollments(course.id);
-        const notes = await storage.getNotesByCourse(course.id);
-        
-        // Calcular notas concluídas total
-        let totalCompletedNotes = 0;
-        for (const enrollment of enrollments) {
-          const completed = await storage.getCompletedNotes(enrollment.userId, course.id);
-          totalCompletedNotes += completed.length;
-        }
-
-        // Calcular nota média
-        let totalGrade = 0;
-        let studentsWithGrades = 0;
-        for (const enrollment of enrollments) {
-          if (enrollment.grade !== null) {
-            totalGrade += enrollment.grade;
-            studentsWithGrades++;
+        try {
+          console.log(`Processing course: ${course.id} - ${course.title}`);
+          
+          const enrollments = await storage.getCourseEnrollments(course.id);
+          console.log(`Enrollments for course ${course.id}:`, enrollments.length);
+          
+          const notes = await storage.getNotesByCourse(course.id);
+          console.log(`Notes for course ${course.id}:`, notes.length);
+          
+          let totalCompletedNotes = 0;
+          
+          for (const enrollment of enrollments) {
+            try {
+              const completed = await storage.getCompletedNotes(enrollment.userId, course.id);
+              totalCompletedNotes += completed.length;
+              console.log(`User ${enrollment.userId} completed ${completed.length} notes`);
+            } catch (notesErr) {
+              console.log(`Error getting completed notes for user ${enrollment.userId}:`, notesErr);
+              totalCompletedNotes += 0;
+            }
           }
+          
+          let totalGrade = 0;
+          let studentsWithGrades = 0;
+          
+          for (const enrollment of enrollments) {
+            if (enrollment.grade !== null && enrollment.grade !== undefined) {
+              totalGrade += enrollment.grade;
+              studentsWithGrades++;
+            }
+          }
+          
+          const averageGrade = studentsWithGrades > 0 ? totalGrade / studentsWithGrades : 0;
+          const progressPercentage = notes.length > 0 && enrollments.length > 0 ? 
+            Math.round((totalCompletedNotes / (notes.length * enrollments.length)) * 100) : 0;
+          
+          const courseData = {
+            courseName: course.title.length > 15 ? course.title.substring(0, 15) + '...' : course.title,
+            totalStudents: enrollments.length,
+            completedNotes: totalCompletedNotes,
+            averageGrade: Math.round(averageGrade * 10) / 10,
+            progressPercentage
+          };
+          
+          console.log(`Course data for ${course.title}:`, courseData);
+          progressData.push(courseData);
+          
+        } catch (courseError) {
+          console.error(`Error processing course ${course.id}:`, courseError);
         }
-        const averageGrade = studentsWithGrades > 0 ? totalGrade / studentsWithGrades : 0;
-
-        progressData.push({
-          courseName: course.title.length > 15 ? course.title.substring(0, 15) + '...' : course.title,
-          totalStudents: enrollments.length,
-          completedNotes: totalCompletedNotes,
-          averageGrade: Math.round(averageGrade * 10) / 10,
-          progressPercentage: notes.length > 0 ? Math.round((totalCompletedNotes / (notes.length * enrollments.length)) * 100) : 0
-        });
       }
 
+      console.log('Final progress data:', progressData);
       res.json(progressData);
-    } catch (error) {
-      console.error('Failed to get course progress data:', error);
-      res.status(500).json({ message: 'Failed to get course progress data' });
+    } catch (error: any) {
+      console.error('Course progress error:', error);
+      res.status(500).json({ 
+        message: 'Failed to get course progress data', 
+        error: error?.message || 'Unknown error',
+        stack: error?.stack
+      });
     }
   });
 
