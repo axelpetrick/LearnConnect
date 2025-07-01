@@ -27,6 +27,7 @@ export default function CourseDetail() {
   const [selectedStudent, setSelectedStudent] = useState('');
   const [gradeValue, setGradeValue] = useState('');
   const [gradingStudent, setGradingStudent] = useState<number | null>(null);
+  const [studentSearch, setStudentSearch] = useState('');
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [noteIsPublic, setNoteIsPublic] = useState(true);
@@ -151,7 +152,23 @@ export default function CourseDetail() {
 
   // Buscar estudantes disponíveis (para matricular) - com tipagem correta
   const { data: availableStudents = [] } = useQuery<any[]>({
-    queryKey: ['/api/users/students'],
+    queryKey: ['/api/users/students', studentSearch],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (studentSearch.trim()) {
+        params.append('search', studentSearch.trim());
+      }
+      const response = await fetch(`/api/users/students?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch students');
+      }
+      return response.json();
+    },
     enabled: !!(user && ['tutor', 'admin'].includes(user.role)),
   });
 
@@ -1013,7 +1030,19 @@ export default function CourseDetail() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <div>
-                            <Label htmlFor="student">Selecionar Estudante</Label>
+                            <Label htmlFor="student-search">Buscar Estudante</Label>
+                            <Input
+                              id="student-search"
+                              type="text"
+                              placeholder="Digite o nome, username ou email do estudante..."
+                              value={studentSearch}
+                              onChange={(e) => setStudentSearch(e.target.value)}
+                              className="mb-3"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="student">Selecionar Estudante {studentSearch ? `(${availableStudents.length} encontrados)` : `(${availableStudents.length} disponíveis)`}</Label>
                             <Select value={selectedStudent} onValueChange={setSelectedStudent}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Escolha um estudante para matricular" />
