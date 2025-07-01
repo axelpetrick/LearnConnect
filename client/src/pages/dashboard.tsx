@@ -6,7 +6,6 @@ import { StatsCards } from '@/components/dashboard/stats-cards';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { ActivityTimeline } from '@/components/dashboard/activity-timeline';
 import { ProgressChart } from '@/components/dashboard/progress-chart';
-import { RecommendedCourses } from '@/components/dashboard/recommended-courses';
 import { ForumHighlights } from '@/components/dashboard/forum-highlights';
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import { useAuth } from '@/hooks/use-auth';
@@ -58,7 +57,6 @@ export default function Dashboard() {
 
             {/* Right Column - Sidebar Content */}
             <div className="space-y-8">
-              <RecommendedCourses />
               <ForumHighlights />
               <QuickActions />
             </div>
