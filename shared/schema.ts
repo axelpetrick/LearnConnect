@@ -112,6 +112,18 @@ export const noteCompletions = pgTable("note_completions", {
   completedAt: timestamp("completed_at").notNull().defaultNow(),
 });
 
+export const attendanceRecords = pgTable("attendance_records", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  courseId: integer("course_id").notNull().references(() => courses.id),
+  date: timestamp("date").notNull(), // data específica da presença/falta
+  type: text("type").notNull(), // 'presence' ou 'absence'
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  // Índice único para garantir apenas um registro por estudante/curso/data
+  uniqueUserCourseDate: uniqueIndex("unique_user_course_date").on(table.userId, table.courseId, table.date),
+}));
+
 // Zod schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -164,4 +176,5 @@ export type InsertForumComment = z.infer<typeof insertForumCommentSchema>;
 export type CommentVote = typeof commentVotes.$inferSelect;
 export type TopicVote = typeof topicVotes.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
 export type LoginData = z.infer<typeof loginSchema>;

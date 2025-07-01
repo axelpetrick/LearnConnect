@@ -420,6 +420,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Marcar presença para uma data específica
+  app.post("/api/courses/:courseId/students/:studentId/attendance-date", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const studentId = parseInt(req.params.studentId);
+      const { date } = req.body;
+      
+      if (!date) {
+        return res.status(400).json({ message: 'Date is required' });
+      }
+
+      await storage.markAttendanceForDate(studentId, courseId, new Date(date));
+      res.json({ message: 'Attendance marked for date successfully' });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || 'Failed to mark attendance for date' });
+    }
+  });
+
+  // Marcar falta para uma data específica
+  app.post("/api/courses/:courseId/students/:studentId/absence-date", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const studentId = parseInt(req.params.studentId);
+      const { date } = req.body;
+      
+      if (!date) {
+        return res.status(400).json({ message: 'Date is required' });
+      }
+
+      await storage.markAbsenceForDate(studentId, courseId, new Date(date));
+      res.json({ message: 'Absence marked for date successfully' });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || 'Failed to mark absence for date' });
+    }
+  });
+
+  // Verificar presença/falta para uma data específica
+  app.get("/api/courses/:courseId/students/:studentId/attendance-date", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const studentId = parseInt(req.params.studentId);
+      const { date } = req.query;
+      
+      if (!date) {
+        return res.status(400).json({ message: 'Date is required' });
+      }
+
+      const record = await storage.getAttendanceForDate(studentId, courseId, new Date(date as string));
+      res.json(record);
+    } catch (error) {
+      res.status(400).json({ message: 'Failed to get attendance for date' });
+    }
+  });
+
+  // Obter todos os registros de presença de um estudante
+  app.get("/api/courses/:courseId/students/:studentId/attendance-records", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const studentId = parseInt(req.params.studentId);
+      
+      const records = await storage.getStudentAttendanceRecords(studentId, courseId);
+      res.json(records);
+    } catch (error) {
+      res.status(400).json({ message: 'Failed to get attendance records' });
+    }
+  });
+
   // Remover estudante do curso
   app.delete("/api/courses/:courseId/students/:studentId", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
     try {

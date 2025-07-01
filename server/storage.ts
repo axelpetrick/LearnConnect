@@ -1,4 +1,4 @@
-import { users, courses, courseEnrollments, notes, forumTopics, forumComments, commentVotes, topicVotes, noteCompletions, type User, type InsertUser, type Course, type InsertCourse, type CourseEnrollment, type Note, type InsertNote, type ForumTopic, type InsertForumTopic, type ForumComment, type InsertForumComment, type CommentVote, type TopicVote } from "@shared/schema";
+import { users, courses, courseEnrollments, notes, forumTopics, forumComments, commentVotes, topicVotes, noteCompletions, attendanceRecords, type User, type InsertUser, type Course, type InsertCourse, type CourseEnrollment, type Note, type InsertNote, type ForumTopic, type InsertForumTopic, type ForumComment, type InsertForumComment, type CommentVote, type TopicVote, type AttendanceRecord } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
 
@@ -30,6 +30,10 @@ export interface IStorage {
   // Attendance methods
   markAttendance(studentId: number, courseId: number): Promise<void>;
   markAbsence(studentId: number, courseId: number): Promise<void>;
+  markAttendanceForDate(studentId: number, courseId: number, date: Date): Promise<void>;
+  markAbsenceForDate(studentId: number, courseId: number, date: Date): Promise<void>;
+  getAttendanceForDate(studentId: number, courseId: number, date: Date): Promise<any>;
+  getStudentAttendanceRecords(studentId: number, courseId: number): Promise<any[]>;
   
   // Notes methods
   getNotes(): Promise<Note[]>;
@@ -584,6 +588,105 @@ export class DatabaseStorage implements IStorage {
           eq(courseEnrollments.courseId, courseId)
         ));
     }
+  }
+
+  async markAttendanceForDate(studentId: number, courseId: number, date: Date): Promise<void> {
+    // Verificar se já existe um registro para esta data
+    const existing = await this.getAttendanceForDate(studentId, courseId, date);
+    if (existing) {
+      throw new Error('Já existe um registro de presença/falta para esta data');
+    }
+
+    // Inserir novo registro de presença
+    await db.insert(attendanceRecords).values({
+      userId: studentId,
+      courseId: courseId,
+      date: date,
+      type: 'presence',
+    });
+
+    // Atualizar contador de presenças
+    const [enrollment] = await db.select()
+      .from(courseEnrollments)
+      .where(and(
+        eq(courseEnrollments.userId, studentId),
+        eq(courseEnrollments.courseId, courseId)
+      ));
+    
+    if (enrollment) {
+      await db.update(courseEnrollments)
+        .set({ 
+          attendanceCount: (enrollment.attendanceCount || 0) + 1
+        })
+        .where(and(
+          eq(courseEnrollments.userId, studentId),
+          eq(courseEnrollments.courseId, courseId)
+        ));
+    }
+  }
+
+  async markAbsenceForDate(studentId: number, courseId: number, date: Date): Promise<void> {
+    // Verificar se já existe um registro para esta data
+    const existing = await this.getAttendanceForDate(studentId, courseId, date);
+    if (existing) {
+      throw new Error('Já existe um registro de presença/falta para esta data');
+    }
+
+    // Inserir novo registro de falta
+    await db.insert(attendanceRecords).values({
+      userId: studentId,
+      courseId: courseId,
+      date: date,
+      type: 'absence',
+    });
+
+    // Atualizar contador de faltas
+    const [enrollment] = await db.select()
+      .from(courseEnrollments)
+      .where(and(
+        eq(courseEnrollments.userId, studentId),
+        eq(courseEnrollments.courseId, courseId)
+      ));
+    
+    if (enrollment) {
+      await db.update(courseEnrollments)
+        .set({ 
+          absenceCount: (enrollment.absenceCount || 0) + 1
+        })
+        .where(and(
+          eq(courseEnrollments.userId, studentId),
+          eq(courseEnrollments.courseId, courseId)
+        ));
+    }
+  }
+
+  async getAttendanceForDate(studentId: number, courseId: number, date: Date): Promise<any> {
+    // Normalizar a data para comparar apenas o dia (sem horário)
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+
+    const [record] = await db.select()
+      .from(attendanceRecords)
+      .where(and(
+        eq(attendanceRecords.userId, studentId),
+        eq(attendanceRecords.courseId, courseId),
+        sql`${attendanceRecords.date} >= ${startOfDay} AND ${attendanceRecords.date} <= ${endOfDay}`
+      ))
+      .limit(1);
+
+    return record || null;
+  }
+
+  async getStudentAttendanceRecords(studentId: number, courseId: number): Promise<any[]> {
+    const records = await db.select()
+      .from(attendanceRecords)
+      .where(and(
+        eq(attendanceRecords.userId, studentId),
+        eq(attendanceRecords.courseId, courseId)
+      ))
+      .orderBy(desc(attendanceRecords.date));
+
+    return records;
   }
 }
 

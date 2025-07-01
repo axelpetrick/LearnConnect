@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { DayPicker } from 'react-day-picker';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Book, User, Calendar, Users, Play, CheckCircle, CheckCircle2, UserPlus, GraduationCap, FileText, Plus, Trash2, Edit, MoreVertical, UserCheck, UserX } from 'lucide-react';
+import { Book, User, Calendar, Users, Play, CheckCircle, CheckCircle2, UserPlus, GraduationCap, FileText, Plus, Trash2, Edit, MoreVertical, UserCheck, UserX, CalendarDays } from 'lucide-react';
 import { Course, CourseEnrollment, Note } from '@shared/schema';
 
 export default function CourseDetail() {
@@ -40,10 +42,54 @@ export default function CourseDetail() {
     tags: '',
     authorId: 0,
   });
+  const [attendanceCalendarOpen, setAttendanceCalendarOpen] = useState<number | null>(null);
+  const [absenceCalendarOpen, setAbsenceCalendarOpen] = useState<number | null>(null);
   const { id } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Função para marcar presença em data específica
+  const handleAttendanceForDate = async (studentId: number, date: Date) => {
+    try {
+      await apiRequest('POST', `/api/courses/${id}/students/${studentId}/attendance-date`, {
+        date: date.toISOString()
+      });
+      toast({
+        title: 'Presença marcada!',
+        description: `Presença registrada para ${date.toLocaleDateString('pt-BR')}.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+      setAttendanceCalendarOpen(null);
+    } catch (error: any) {
+      toast({
+        title: 'Erro',
+        description: error.response?.data?.message || 'Não foi possível marcar presença',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Função para marcar falta em data específica
+  const handleAbsenceForDate = async (studentId: number, date: Date) => {
+    try {
+      await apiRequest('POST', `/api/courses/${id}/students/${studentId}/absence-date`, {
+        date: date.toISOString()
+      });
+      toast({
+        title: 'Falta marcada!',
+        description: `Falta registrada para ${date.toLocaleDateString('pt-BR')}.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
+      setAbsenceCalendarOpen(null);
+    } catch (error: any) {
+      toast({
+        title: 'Erro',
+        description: error.response?.data?.message || 'Não foi possível marcar falta',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const { data: course, isLoading, error } = useQuery<Course>({
     queryKey: [`/api/courses/${id}`],
@@ -1136,53 +1182,59 @@ export default function CourseDetail() {
                                         </DialogContent>
                                       </Dialog>
                                       
-                                      <Button 
-                                        size="sm" 
-                                        variant="outline"
-                                        onClick={async () => {
-                                          try {
-                                            await apiRequest('POST', `/api/courses/${id}/students/${enrollment.userId}/attendance`);
-                                            toast({
-                                              title: 'Presença marcada!',
-                                              description: 'Presença registrada com sucesso.',
-                                            });
-                                            queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
-                                          } catch (error) {
-                                            toast({
-                                              title: 'Erro',
-                                              description: 'Não foi possível marcar presença',
-                                              variant: 'destructive',
-                                            });
-                                          }
-                                        }}
+                                      <Popover 
+                                        open={attendanceCalendarOpen === enrollment.userId} 
+                                        onOpenChange={(open) => setAttendanceCalendarOpen(open ? enrollment.userId : null)}
                                       >
-                                        <UserCheck className="w-4 h-4 mr-1" />
-                                        Presença
-                                      </Button>
+                                        <PopoverTrigger asChild>
+                                          <Button size="sm" variant="outline">
+                                            <CalendarDays className="w-4 h-4 mr-1" />
+                                            Presença
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                          <div className="p-4">
+                                            <h4 className="font-medium mb-3">Selecionar data da presença</h4>
+                                            <DayPicker
+                                              mode="single"
+                                              onSelect={(date) => {
+                                                if (date) {
+                                                  handleAttendanceForDate(enrollment.userId, date);
+                                                }
+                                              }}
+                                              disabled={(date) => date > new Date() || date < new Date('2024-01-01')}
+                                              className="rounded-md border"
+                                            />
+                                          </div>
+                                        </PopoverContent>
+                                      </Popover>
                                       
-                                      <Button 
-                                        size="sm" 
-                                        variant="outline"
-                                        onClick={async () => {
-                                          try {
-                                            await apiRequest('POST', `/api/courses/${id}/students/${enrollment.userId}/absence`);
-                                            toast({
-                                              title: 'Falta marcada!',
-                                              description: 'Falta registrada com sucesso.',
-                                            });
-                                            queryClient.invalidateQueries({ queryKey: ['/api/courses', id, 'students'] });
-                                          } catch (error) {
-                                            toast({
-                                              title: 'Erro',
-                                              description: 'Não foi possível marcar falta',
-                                              variant: 'destructive',
-                                            });
-                                          }
-                                        }}
+                                      <Popover 
+                                        open={absenceCalendarOpen === enrollment.userId} 
+                                        onOpenChange={(open) => setAbsenceCalendarOpen(open ? enrollment.userId : null)}
                                       >
-                                        <UserX className="w-4 h-4 mr-1" />
-                                        Falta
-                                      </Button>
+                                        <PopoverTrigger asChild>
+                                          <Button size="sm" variant="outline">
+                                            <CalendarDays className="w-4 h-4 mr-1" />
+                                            Falta
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                          <div className="p-4">
+                                            <h4 className="font-medium mb-3">Selecionar data da falta</h4>
+                                            <DayPicker
+                                              mode="single"
+                                              onSelect={(date) => {
+                                                if (date) {
+                                                  handleAbsenceForDate(enrollment.userId, date);
+                                                }
+                                              }}
+                                              disabled={(date) => date > new Date() || date < new Date('2024-01-01')}
+                                              className="rounded-md border"
+                                            />
+                                          </div>
+                                        </PopoverContent>
+                                      </Popover>
                                     </div>
                                   </div>
                                 </div>
