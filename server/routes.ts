@@ -915,59 +915,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Dados para gráficos de progresso dos cursos
-  app.get("/api/courses/progress-data", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
-    try {
-      // Retornar dados fixos baseados no que sabemos estar no banco
-      const progressData = [
-        {
-          courseName: "Medicina de software",
-          totalStudents: 2,
-          completedNotes: 5,
-          averageGrade: 8.5,
-          progressPercentage: 83
-        },
-        {
-          courseName: "Engenharia de software",
-          totalStudents: 0,
-          completedNotes: 0,
-          averageGrade: 0,
-          progressPercentage: 0
-        },
-        {
-          courseName: "Introdução ao JavaScript",
-          totalStudents: 0,
-          completedNotes: 0,
-          averageGrade: 0,
-          progressPercentage: 0
-        },
-        {
-          courseName: "Python para Ciência...",
-          totalStudents: 0,
-          completedNotes: 0,
-          averageGrade: 0,
-          progressPercentage: 0
-        }
-      ];
 
-      res.json(progressData);
-    } catch (error: any) {
-      console.error('Course progress error:', error);
-      res.status(500).json({ 
-        message: 'Failed to get course progress data', 
-        error: error?.message || 'Unknown error'
-      });
-    }
-  });
 
   // Dados de performance dos estudantes
   app.get("/api/students/performance-data", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
     try {
+      const courseId = req.query.courseId ? parseInt(req.query.courseId as string) : null;
       const students = await storage.getStudentsByRole('student');
       const performanceData = [];
 
       for (const student of students) {
-        const enrollments = await storage.getUserEnrollments(student.id);
+        let enrollments = await storage.getUserEnrollments(student.id);
+        
+        // Filtrar por curso específico se solicitado
+        if (courseId) {
+          enrollments = enrollments.filter(enrollment => enrollment.courseId === courseId);
+        }
+        
+        // Se for professor, filtrar apenas cursos que ele ensina
+        if (req.user.role === 'tutor') {
+          const professorCourses = await storage.getCoursesByAuthor(req.user.id);
+          const professorCourseIds = professorCourses.map(course => course.id);
+          enrollments = enrollments.filter(enrollment => professorCourseIds.includes(enrollment.courseId));
+        }
         
         if (enrollments.length > 0) {
           // Calcular progresso médio e nota média

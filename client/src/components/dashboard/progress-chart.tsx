@@ -1,19 +1,18 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line
+  PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { apiRequest } from '@/lib/queryClient';
 
-interface CourseProgressData {
-  courseName: string;
-  totalStudents: number;
-  completedNotes: number;
-  averageGrade: number;
-  progressPercentage: number;
+interface Course {
+  id: number;
+  title: string;
+  authorId: number;
 }
 
 interface StudentPerformance {
@@ -27,28 +26,45 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 export function ProgressChart() {
   const { user } = useAuth();
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('all');
 
-  // Buscar dados de progresso dos cursos
-  const { data: courseProgress, isLoading: loadingProgress } = useQuery<CourseProgressData[]>({
-    queryKey: ['/api/courses/progress-data'],
-    queryFn: async (): Promise<CourseProgressData[]> => {
-      const res = await apiRequest('GET', '/api/courses/progress-data');
-      return res.json();
+  // Só mostrar para tutores e admins
+  if (!user || user.role === 'student') {
+    return null;
+  }
+
+  // Buscar cursos disponíveis baseado no papel do usuário
+  const { data: courses, isLoading: loadingCourses } = useQuery<Course[]>({
+    queryKey: ['/api/courses'],
+    queryFn: async (): Promise<Course[]> => {
+      const res = await apiRequest('GET', '/api/courses');
+      const allCourses = await res.json();
+      
+      // Se for professor, filtrar apenas seus cursos
+      if (user.role === 'tutor') {
+        return allCourses.filter((course: Course) => course.authorId === user.id);
+      }
+      
+      // Admin vê todos os cursos
+      return allCourses;
     },
     enabled: !!(user && (user.role === 'tutor' || user.role === 'admin')),
   });
 
-  // Buscar performance dos estudantes
+  // Buscar performance dos estudantes filtrada por curso
   const { data: studentPerformance, isLoading: loadingStudents } = useQuery<StudentPerformance[]>({
-    queryKey: ['/api/students/performance-data'],
+    queryKey: ['/api/students/performance-data', selectedCourseId],
     queryFn: async (): Promise<StudentPerformance[]> => {
-      const res = await apiRequest('GET', '/api/students/performance-data');
+      const url = selectedCourseId === 'all' 
+        ? '/api/students/performance-data' 
+        : `/api/students/performance-data?courseId=${selectedCourseId}`;
+      const res = await apiRequest('GET', url);
       return res.json();
     },
     enabled: !!(user && (user.role === 'tutor' || user.role === 'admin')),
   });
 
-  if (loadingProgress || loadingStudents) {
+  if (loadingCourses || loadingStudents) {
     return (
       <Card className="mt-8">
         <CardHeader>
@@ -76,31 +92,29 @@ export function ProgressChart() {
   return (
     <Card className="mt-8">
       <CardHeader>
-        <CardTitle>Progresso dos Cursos</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Progresso dos Cursos</CardTitle>
+          <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Selecione um curso" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Cursos</SelectItem>
+              {courses?.map((course) => (
+                <SelectItem key={course.id} value={course.id.toString()}>
+                  {course.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
+        <Tabs defaultValue="performance" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="performance">Performance dos Alunos</TabsTrigger>
             <TabsTrigger value="status">Status dos Alunos</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="overview" className="space-y-4">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={courseProgress}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="courseName" stroke="#64748b" />
-                  <YAxis stroke="#64748b" />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="totalStudents" fill="#3b82f6" name="Total de Alunos" />
-                  <Bar dataKey="completedNotes" fill="#10b981" name="Atividades Concluídas" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </TabsContent>
           
           <TabsContent value="performance" className="space-y-4">
             <div className="h-64">
