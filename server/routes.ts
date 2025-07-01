@@ -715,6 +715,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rota para discussões populares (3 mais comentadas)
+  app.get("/api/forum/popular-discussions", async (_req, res) => {
+    try {
+      const popularDiscussions = await storage.getPopularDiscussions();
+      res.json(popularDiscussions);
+    } catch (error) {
+      console.error('Failed to get popular discussions:', error);
+      res.status(500).json({ message: "Failed to get popular discussions" });
+    }
+  });
+
   app.get("/api/forum/topics/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);

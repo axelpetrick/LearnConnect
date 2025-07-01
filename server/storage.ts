@@ -84,6 +84,9 @@ export interface IStorage {
   
   // Recent activity methods
   getRecentActivityForProfessor(professorId: number, page?: number, limit?: number): Promise<{ activities: any[], total: number }>;
+  
+  // Popular discussions methods
+  getPopularDiscussions(): Promise<any[]>;
 }
 
 // Implementação com banco de dados PostgreSQL
@@ -766,6 +769,69 @@ export class DatabaseStorage implements IStorage {
 
     console.log('Found recent activities:', recentActivities.length, 'of', total, 'total');
     return { activities: recentActivities, total };
+  }
+
+  async getPopularDiscussions(): Promise<any[]> {
+    try {
+      // Buscar os 3 tópicos com mais comentários
+      const topicsWithCommentCounts = await db
+        .select({
+          id: forumTopics.id,
+          title: forumTopics.title,
+          content: forumTopics.content,
+          authorId: forumTopics.authorId,
+          createdAt: forumTopics.createdAt,
+          commentCount: sql<number>`CAST(COUNT(${forumComments.id}) AS INTEGER)`,
+          authorName: users.firstName
+        })
+        .from(forumTopics)
+        .leftJoin(forumComments, eq(forumTopics.id, forumComments.topicId))
+        .innerJoin(users, eq(forumTopics.authorId, users.id))
+        .groupBy(forumTopics.id, users.firstName)
+        .orderBy(desc(sql`COUNT(${forumComments.id})`))
+        .limit(3);
+
+      // Para cada tópico, calcular likes e dislikes
+      const popularDiscussions = await Promise.all(
+        topicsWithCommentCounts.map(async (topic) => {
+          const voteStats = await db
+            .select({
+              likes: sql<number>`CAST(COUNT(CASE WHEN ${topicVotes.voteType} = 1 THEN 1 END) AS INTEGER)`,
+              dislikes: sql<number>`CAST(COUNT(CASE WHEN ${topicVotes.voteType} = -1 THEN 1 END) AS INTEGER)`
+            })
+            .from(topicVotes)
+            .where(eq(topicVotes.topicId, topic.id));
+
+          const likes = voteStats[0]?.likes || 0;
+          const dislikes = voteStats[0]?.dislikes || 0;
+
+          // Determinar a cor baseada nos likes/dislikes
+          let sentiment: 'positive' | 'negative' | 'neutral' = 'neutral';
+          if (likes > dislikes) {
+            sentiment = 'positive';
+          } else if (dislikes > likes) {
+            sentiment = 'negative';
+          }
+
+          return {
+            id: topic.id,
+            title: topic.title,
+            content: topic.content,
+            authorName: topic.authorName,
+            commentCount: topic.commentCount,
+            likes,
+            dislikes,
+            sentiment,
+            createdAt: topic.createdAt
+          };
+        })
+      );
+
+      return popularDiscussions;
+    } catch (error) {
+      console.error('Error getting popular discussions:', error);
+      throw error;
+    }
   }
 }
 
