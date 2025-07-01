@@ -20,6 +20,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { Book, User, Calendar, Users, Play, CheckCircle, CheckCircle2, UserPlus, GraduationCap, FileText, Plus, Trash2, Edit, MoreVertical, UserCheck, UserX, CalendarDays } from 'lucide-react';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Course, CourseEnrollment, Note } from '@shared/schema';
 
 export default function CourseDetail() {
@@ -27,7 +28,6 @@ export default function CourseDetail() {
   const [selectedStudent, setSelectedStudent] = useState('');
   const [gradeValue, setGradeValue] = useState('');
   const [gradingStudent, setGradingStudent] = useState<number | null>(null);
-  const [studentSearch, setStudentSearch] = useState('');
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [noteIsPublic, setNoteIsPublic] = useState(true);
@@ -152,13 +152,9 @@ export default function CourseDetail() {
 
   // Buscar estudantes disponíveis (para matricular) - com tipagem correta
   const { data: availableStudents = [] } = useQuery<any[]>({
-    queryKey: ['/api/users/students', studentSearch],
+    queryKey: ['/api/users/students'],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (studentSearch.trim()) {
-        params.append('search', studentSearch.trim());
-      }
-      const response = await fetch(`/api/users/students?${params.toString()}`, {
+      const response = await fetch(`/api/users/students`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',
@@ -1029,36 +1025,24 @@ export default function CourseDetail() {
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          <div>
-                            <Label htmlFor="student-search">Buscar Estudante</Label>
-                            <Input
-                              id="student-search"
-                              type="text"
-                              placeholder="Digite o nome, username ou email do estudante..."
-                              value={studentSearch}
-                              onChange={(e) => setStudentSearch(e.target.value)}
-                              className="mb-3"
-                            />
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="student">Selecionar Estudante {studentSearch ? `(${availableStudents.length} encontrados)` : `(${availableStudents.length} disponíveis)`}</Label>
-                            <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Escolha um estudante para matricular" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableStudents.map((student: any) => (
-                                  <SelectItem key={student.id} value={student.id.toString()}>
-                                    <div className="flex items-center gap-2">
-                                      <User className="w-4 h-4" />
-                                      {student.firstName} {student.lastName} ({student.username})
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                          <SearchableSelect
+                            label="Selecionar Estudante"
+                            placeholder="Escolha um estudante para matricular"
+                            searchPlaceholder="Digite o nome, username ou email do estudante..."
+                            items={availableStudents}
+                            value={selectedStudent}
+                            onValueChange={setSelectedStudent}
+                            renderItem={(student) => (
+                              <div className="flex items-center gap-2">
+                                <User className="w-4 h-4" />
+                                {student.firstName} {student.lastName} ({student.username})
+                              </div>
+                            )}
+                            getItemValue={(student) => student.id.toString()}
+                            getSearchableText={(student) => 
+                              `${student.firstName} ${student.lastName} ${student.username} ${student.email}`
+                            }
+                          />
                           
                           <Button 
                             onClick={async () => {

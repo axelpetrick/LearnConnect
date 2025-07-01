@@ -220,27 +220,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('🔍 API /api/users/students called - user:', req.user?.username, 'role:', req.user?.role);
     
     try {
-      const search = req.query.search as string;
-      console.log('Search query:', search);
-      
       // Buscar todos os estudantes do banco de dados
       const students = await storage.getStudentsByRole('student');
       
-      // Filtrar por busca se fornecida
-      let filteredStudents = students;
-      if (search && search.trim()) {
-        const searchTerm = search.toLowerCase().trim();
-        filteredStudents = students.filter(student => 
-          student.firstName?.toLowerCase().includes(searchTerm) ||
-          student.lastName?.toLowerCase().includes(searchTerm) ||
-          student.username?.toLowerCase().includes(searchTerm) ||
-          student.email?.toLowerCase().includes(searchTerm) ||
-          `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchTerm)
-        );
-      }
-      
       // Remover campo de senha por segurança
-      const safeStudents = filteredStudents.map(student => ({
+      const safeStudents = students.map(student => ({
         id: student.id,
         username: student.username,
         firstName: student.firstName,
@@ -249,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: student.role
       }));
       
-      console.log(`✅ Returning ${safeStudents.length} students (total: ${students.length})`);
+      console.log(`✅ Returning ${safeStudents.length} students`);
       res.json(safeStudents);
       
     } catch (error) {
