@@ -1,8 +1,8 @@
-# Modelo de Documento MongoDB (Alternativo)
+# Modelo de Dados PostgreSQL - EduCollab
 
 ## Visão Geral
 
-Embora o EduCollab utilize PostgreSQL como banco principal, este documento apresenta como seria a modelagem caso fosse utilizado MongoDB. A estrutura de documentos oferece uma abordagem diferente para organizar os dados educacionais.
+O EduCollab utiliza PostgreSQL como banco de dados principal, oferecendo robustez, confiabilidade e suporte completo a transações ACID. Este documento detalha a estrutura de dados, relacionamentos e exemplos de registros utilizados na plataforma.
 
 ## Estrutura de Documentos
 
