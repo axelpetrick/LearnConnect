@@ -183,6 +183,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Estatísticas administrativas (apenas para admins)
+  app.get("/api/admin/stats", authenticateToken, requireRole(['admin']), async (req: any, res) => {
+    try {
+      const adminStats = await storage.getAdminStats();
+      res.json(adminStats);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to get admin stats' });
+    }
+  });
+
   // Buscar matrículas do usuário atual
   app.get("/api/users/enrollments", authenticateToken, async (req: any, res) => {
     try {

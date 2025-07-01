@@ -69,6 +69,14 @@ export interface IStorage {
     forumPosts: number;
   }>;
   
+  // Admin statistics
+  getAdminStats(): Promise<{
+    totalCourses: number;
+    totalStudentsEnrolled: number;
+    totalNotesCreated: number;
+    totalForumPosts: number;
+  }>;
+  
   // Note completion methods
   markNoteAsCompleted(userId: number, noteId: number): Promise<void>;
   unmarkNoteAsCompleted(userId: number, noteId: number): Promise<void>;
@@ -484,6 +492,32 @@ export class DatabaseStorage implements IStorage {
       coursesCompleted: enrollments.filter(e => e.progress === 100).length,
       notesCreated: userNotes.length,
       forumPosts: userTopics.length,
+    };
+  }
+
+  async getAdminStats(): Promise<{
+    totalCourses: number;
+    totalStudentsEnrolled: number;
+    totalNotesCreated: number;
+    totalForumPosts: number;
+  }> {
+    // Total de cursos ativos
+    const allCourses = await db.select().from(courses);
+    
+    // Total de matrículas (alunos matriculados em cursos)
+    const enrollments = await db.select().from(courseEnrollments);
+    
+    // Total de anotações criadas
+    const allNotes = await db.select().from(notes);
+    
+    // Total de posts no fórum
+    const forumPosts = await db.select().from(forumTopics);
+    
+    return {
+      totalCourses: allCourses.length,
+      totalStudentsEnrolled: enrollments.length,
+      totalNotesCreated: allNotes.length,
+      totalForumPosts: forumPosts.length,
     };
   }
 

@@ -1,45 +1,74 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Book, Users, FileText, MessageSquare } from 'lucide-react';
 import { UserStats } from '@/lib/types';
+import { useAuth } from '@/hooks/use-auth';
+import { useQuery } from '@tanstack/react-query';
 
 interface StatsCardsProps {
   stats: UserStats;
   isLoading?: boolean;
 }
 
+interface AdminStats {
+  totalCourses: number;
+  totalStudentsEnrolled: number;
+  totalNotesCreated: number;
+  totalForumPosts: number;
+}
+
 export function StatsCards({ stats, isLoading }: StatsCardsProps) {
+  const { user } = useAuth();
+  
+  // Buscar estatísticas administrativas apenas para admins
+  const { data: adminStats, isLoading: adminStatsLoading } = useQuery<AdminStats>({
+    queryKey: ['/api/admin/stats'],
+    enabled: !!(user && user.role === 'admin'),
+  });
+
+  // Se é admin, usa estatísticas administrativas; senão, não mostra nada
+  if (user?.role !== 'admin') {
+    return null;
+  }
+
+  const statsToUse = adminStats || {
+    totalCourses: 0,
+    totalStudentsEnrolled: 0,
+    totalNotesCreated: 0,
+    totalForumPosts: 0,
+  };
+
   const cards = [
     {
       title: 'Cursos Ativos',
-      value: stats?.coursesEnrolled || 0,
+      value: statsToUse.totalCourses,
       change: '+2 esta semana',
       icon: Book,
       color: 'bg-blue-100 text-primary',
     },
     {
       title: 'Alunos Matriculados',
-      value: 247, // TODO: Get from API
+      value: statsToUse.totalStudentsEnrolled,
       change: '+15 este mês',
       icon: Users,
       color: 'bg-green-100 text-secondary',
     },
     {
       title: 'Anotações Criadas',
-      value: stats?.notesCreated || 0,
+      value: statsToUse.totalNotesCreated,
       change: '+7 hoje',
       icon: FileText,
       color: 'bg-yellow-100 text-accent',
     },
     {
       title: 'Posts no Fórum',
-      value: stats?.forumPosts || 0,
+      value: statsToUse.totalForumPosts,
       change: '+12 esta semana',
       icon: MessageSquare,
       color: 'bg-purple-100 text-purple-600',
     },
   ];
 
-  if (isLoading) {
+  if (isLoading || adminStatsLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {[...Array(4)].map((_, i) => (
