@@ -193,6 +193,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Atividade recente para professores/tutores
+  app.get("/api/users/recent-activity", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
+    try {
+      const recentActivity = await storage.getRecentActivityForProfessor(req.user.id);
+      res.json(recentActivity);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to get recent activity' });
+    }
+  });
+
   // Buscar matrículas do usuário atual
   app.get("/api/users/enrollments", authenticateToken, async (req: any, res) => {
     try {

@@ -1,6 +1,6 @@
 import { users, courses, courseEnrollments, notes, forumTopics, forumComments, commentVotes, topicVotes, noteCompletions, attendanceRecords, type User, type InsertUser, type Course, type InsertCourse, type CourseEnrollment, type Note, type InsertNote, type ForumTopic, type InsertForumTopic, type ForumComment, type InsertForumComment, type CommentVote, type TopicVote, type AttendanceRecord } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -81,6 +81,9 @@ export interface IStorage {
   markNoteAsCompleted(userId: number, noteId: number): Promise<void>;
   unmarkNoteAsCompleted(userId: number, noteId: number): Promise<void>;
   getCompletedNotes(userId: number, courseId: number): Promise<any[]>;
+  
+  // Recent activity methods
+  getRecentActivityForProfessor(professorId: number): Promise<any[]>;
 }
 
 // Implementação com banco de dados PostgreSQL
@@ -721,6 +724,31 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(attendanceRecords.date));
 
     return records;
+  }
+
+  async getRecentActivityForProfessor(professorId: number): Promise<any[]> {
+    // Buscar todas as conclusões de notas dos alunos nos cursos do professor
+    const recentActivities = await db
+      .select({
+        id: noteCompletions.id,
+        noteId: noteCompletions.noteId,
+        userId: noteCompletions.userId,
+        completedAt: noteCompletions.completedAt,
+        noteTitle: notes.title,
+        courseId: notes.courseId,
+        courseTitle: courses.title,
+        studentName: users.firstName,
+        studentLastName: users.lastName
+      })
+      .from(noteCompletions)
+      .innerJoin(notes, eq(noteCompletions.noteId, notes.id))
+      .innerJoin(courses, eq(notes.courseId, courses.id))
+      .innerJoin(users, eq(noteCompletions.userId, users.id))
+      .where(eq(courses.authorId, professorId))
+      .orderBy(desc(noteCompletions.completedAt))
+      .limit(10); // Últimas 10 atividades
+
+    return recentActivities;
   }
 }
 

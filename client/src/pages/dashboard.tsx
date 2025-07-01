@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { StatsCards } from '@/components/dashboard/stats-cards';
+import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { ActivityTimeline } from '@/components/dashboard/activity-timeline';
 import { ProgressChart } from '@/components/dashboard/progress-chart';
 import { RecommendedCourses } from '@/components/dashboard/recommended-courses';
@@ -51,7 +52,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Main Content */}
             <div className="lg:col-span-2 space-y-8">
-              <ActivityTimeline />
+              <RecentActivity />
               <ProgressChart />
             </div>
 
