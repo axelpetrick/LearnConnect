@@ -126,11 +126,8 @@ export default function CourseDetail() {
       if (!id) return [];
       try {
         // Buscar matrículas usando apiRequest para incluir autenticação
-        console.log('Fetching enrollments for course:', id);
         const response = await apiRequest('GET', `/api/courses/${id}/students`);
-        console.log('Enrollment response received');
         const enrollments = await response.json();
-        console.log('Enrollments data:', enrollments);
         
         // Buscar dados dos usuários para cada matrícula
         const enrollmentsWithUsers = await Promise.all(
@@ -143,7 +140,6 @@ export default function CourseDetail() {
             };
           })
         );
-        console.log('Final enrollments with users:', enrollmentsWithUsers);
         return enrollmentsWithUsers;
       } catch (error) {
         console.error('Error fetching enrolled students:', error);

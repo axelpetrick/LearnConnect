@@ -26,7 +26,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Cursos', href: '/courses', icon: Book },
-    { name: 'Anotações', href: '/notes', icon: FileText },
     { name: 'Fórum', href: '/forum', icon: MessageSquare },
     { name: 'Relatórios', href: '/reports', icon: BarChart3 },
   ];

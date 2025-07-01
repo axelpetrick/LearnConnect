@@ -172,6 +172,11 @@ Changelog:
   * Enhanced authentication debugging with console logs and improved state management
   * Finalized real name display system prioritizing firstName over username across platform
   * Fixed calendar popover UX - now closes immediately after selecting attendance/absence dates
+- July 1, 2025: Student visibility fix and menu cleanup
+  * Fixed student enrollment visibility by correcting apiRequest calls with proper JSON parsing
+  * Students now appear correctly in course detail pages (Juliana and Axel visible in Medicina de software)
+  * Removed "Anotações" option from sidebar navigation menu as requested by user
+  * Simplified navigation to only include: Dashboard, Cursos, Fórum, and Relatórios
 ```
 
 ## User Preferences
