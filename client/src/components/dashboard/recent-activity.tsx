@@ -33,7 +33,10 @@ export function RecentActivity() {
   // Buscar atividade recente apenas para tutores/admins
   const { data: response, isLoading } = useQuery<RecentActivityResponse>({
     queryKey: ['/api/users/recent-activity', currentPage, limit],
-    queryFn: () => apiRequest(`/api/users/recent-activity?page=${currentPage}&limit=${limit}`),
+    queryFn: async (): Promise<RecentActivityResponse> => {
+      const res = await apiRequest('GET', `/api/users/recent-activity?page=${currentPage}&limit=${limit}`);
+      return res.json();
+    },
     enabled: !!(user && (user.role === 'tutor' || user.role === 'admin')),
   });
 
