@@ -196,7 +196,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Atividade recente para professores/tutores
   app.get("/api/users/recent-activity", authenticateToken, requireRole(['tutor', 'admin']), async (req: any, res) => {
     try {
-      const recentActivity = await storage.getRecentActivityForProfessor(req.user.id);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 5;
+      const recentActivity = await storage.getRecentActivityForProfessor(req.user.id, page, limit);
       res.json(recentActivity);
     } catch (error) {
       res.status(500).json({ message: 'Failed to get recent activity' });

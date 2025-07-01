@@ -1,9 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Clock, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useState } from 'react';
+import { apiRequest } from '@/lib/queryClient';
 
 interface RecentActivity {
   id: number;
@@ -17,14 +20,26 @@ interface RecentActivity {
   studentLastName: string;
 }
 
+interface RecentActivityResponse {
+  activities: RecentActivity[];
+  total: number;
+}
+
 export function RecentActivity() {
   const { user } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
+  const limit = 5;
   
   // Buscar atividade recente apenas para tutores/admins
-  const { data: activities, isLoading } = useQuery<RecentActivity[]>({
-    queryKey: ['/api/users/recent-activity'],
+  const { data: response, isLoading } = useQuery<RecentActivityResponse>({
+    queryKey: ['/api/users/recent-activity', currentPage, limit],
+    queryFn: () => apiRequest(`/api/users/recent-activity?page=${currentPage}&limit=${limit}`),
     enabled: !!(user && (user.role === 'tutor' || user.role === 'admin')),
   });
+
+  const activities = response?.activities || [];
+  const total = response?.total || 0;
+  const totalPages = Math.ceil(total / limit);
 
   // Se não é tutor/admin, não mostra o componente
   if (!user || (user.role !== 'tutor' && user.role !== 'admin')) {
@@ -75,12 +90,29 @@ export function RecentActivity() {
     );
   }
 
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Atividade Recente
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Atividade Recente
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {total} atividade{total !== 1 ? 's' : ''}
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -111,6 +143,39 @@ export function RecentActivity() {
             </div>
           ))}
         </div>
+
+        {/* Controles de Paginação */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6 pt-4 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+              className="flex items-center gap-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Anterior
+            </Button>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Página {currentPage} de {totalPages}
+              </span>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-2"
+            >
+              Próxima
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

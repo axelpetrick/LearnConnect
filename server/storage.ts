@@ -83,7 +83,7 @@ export interface IStorage {
   getCompletedNotes(userId: number, courseId: number): Promise<any[]>;
   
   // Recent activity methods
-  getRecentActivityForProfessor(professorId: number): Promise<any[]>;
+  getRecentActivityForProfessor(professorId: number, page?: number, limit?: number): Promise<{ activities: any[], total: number }>;
 }
 
 // Implementação com banco de dados PostgreSQL
@@ -726,10 +726,23 @@ export class DatabaseStorage implements IStorage {
     return records;
   }
 
-  async getRecentActivityForProfessor(professorId: number): Promise<any[]> {
-    console.log('Getting recent activity for professor:', professorId);
+  async getRecentActivityForProfessor(professorId: number, page = 1, limit = 5): Promise<{ activities: any[], total: number }> {
+    console.log('Getting recent activity for professor:', professorId, 'page:', page, 'limit:', limit);
     
-    // Buscar todas as conclusões de notas dos alunos nos cursos do professor
+    // Calcular offset para paginação
+    const offset = (page - 1) * limit;
+
+    // Buscar total de atividades primeiro
+    const totalQuery = await db
+      .select({ count: sql`count(*)` })
+      .from(noteCompletions)
+      .innerJoin(notes, eq(noteCompletions.noteId, notes.id))
+      .innerJoin(courses, eq(notes.courseId, courses.id))
+      .where(eq(courses.authorId, professorId));
+
+    const total = Number(totalQuery[0]?.count || 0);
+
+    // Buscar atividades paginadas
     const recentActivities = await db
       .select({
         id: noteCompletions.id,
@@ -748,10 +761,11 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(users, eq(noteCompletions.userId, users.id))
       .where(eq(courses.authorId, professorId))
       .orderBy(desc(noteCompletions.completedAt))
-      .limit(10); // Últimas 10 atividades
+      .limit(limit)
+      .offset(offset);
 
-    console.log('Found recent activities:', recentActivities.length);
-    return recentActivities;
+    console.log('Found recent activities:', recentActivities.length, 'of', total, 'total');
+    return { activities: recentActivities, total };
   }
 }
 
