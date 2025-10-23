@@ -259,15 +259,6 @@ Para suporte e dúvidas:
 - 💬 Discord: [EduCollab Community](https://discord.gg/educollab)
 - 📚 Wiki: [Documentação Completa](docs/)
 
-## 🎯 Roadmap
-
-- [ ] Integração com Google Classroom
-- [ ] App Mobile (React Native)
-- [ ] Sistema de Certificados
-- [ ] IA para Recomendações Personalizadas
-- [ ] Integração com Zoom/Teams
-- [ ] Sistema de Gamificação
-
 ---
 
 **EduCollab Platform** - Transformando a educação através da tecnologia 🚀
